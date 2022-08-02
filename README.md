@@ -16,5 +16,6 @@ Additionally, a STRING interaction network and a protein alias file of the organ
 Demo data of E.coli are included in the GitHub repository.
 ``python3 ignoromenot.py --ranktable WyattClarkIC-perprotein.tsv --idtable 511145.protein.aliases.v11.5.txt --stringppi 511145.protein.links.full.v11.5.txt -ptop 90 -pbot 1 -tppi 850``
 
-This command reads 3 input files, where the genes coming from E.coli (511145) are ranked based on their Wyatt Clark information content (product of GOThresher). ``-ptop 90`` takes most annotated genes at 90th percentile, ``-pbot 1`` takes least annotated genes at 1th percentile, based on Wyatt Clark information content, and ``-tppi 850`` chooses STRING coexpression scores of 850 and above.
+This command reads 3 input files, where the genes coming from E.coli (511145) are ranked based on their Wyatt Clark information content (product of GOThresher). ``-ptop 90`` indicates that the genes at the top 10% wiht respct to WC infromation content are taken. ,
+``-pbot 1`` takes the bottom 1 percent annotated genes based on WC information content (those are the ignorome genes), and ``-tppi 850`` chooses STRING coexpression scores of 850 and above.
 IgnoroMeNot outputs a list of ignorome genes based on these parameters.
