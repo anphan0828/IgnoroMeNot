@@ -2,7 +2,7 @@
 IgnoroMeNot outputs a list of ignorome genes highly associated with other well-annotated genes. Ignorome genes are genes that have little to no validated experimental Gene Ontology annotations (see __xxx__). Strong associations between ignorome genes and well-annotated genes can help fill the gaps in the protein function space and improve the balance in knowledge between "annotation-rich" and "annotation-poor" genes.
 
 ## Installation
-IgnoreMeNot can be installed with conda
+IgnoreMeNot is available on (PyPI)[https://pypi.org/project/ignoromenot/0.0.1/].
 
 ### Required files:
 IgnoroMeNot requires a tab-separated file of a list of genes with any single annotation metric (e.g. GO annotation count, information content, article count). Highest and lowest annotated genes are defined based on this metric. Below is an example of how the rank table should look like:
@@ -46,9 +46,9 @@ Required arguments:
 ### Example usage:
 Demo data of E.coli are included in the GitHub repository.
 
-``$ python3 ignoromenot.py --ranktable WyattClarkIC-perprotein.tsv --idtable 511145.protein.aliases.v11.5.txt --stringppi 511145.protein.links.full.v11.5.txt --percentile_top 90 --percentile_bot 1 --threshold_ppi 850``
+``$ python3 src/ignoromenot/ignoromenot.py --ranktable demodata/WyattClarkIC-perprotein.tsv --idtable demodata/511145.protein.aliases.v11.5.txt --stringppi demodata/511145.protein.links.full.v11.5.txt --percentile_top 90 --percentile_bot 1 --threshold_ppi 850``
 
 This command reads 3 input files, where the genes coming from E.coli (511145) are ranked based on their Wyatt Clark information content (``WyattClarkIC-perprotein.tsv``). ``--percentile_top 90`` indicates that the genes at the top 10% with respect to Wyatt Clark infromation content are taken,
 ``--percentile_bot 1`` takes the bottom 1% annotated genes based on Wyatt Clark information content (those are the ignorome genes), and ``--threshold_ppi 850`` chooses STRING coexpression score (``511145.protein.links.full.v11.5.txt``) of 850 and above. The protein alias file (``511145.protein.aliases.v11.5.txt``) makes sure that protein names from different databases have their IDs mapped properly to STRING interaction network.
 
-IgnoroMeNot outputs a list of ignorome genes based on these parameters. If IgnoroMeNot is run with internet connection, it also provides users with all STRING interaction partners of these ignorome genes above ``--threshold_ppi`` via STRING API
+IgnoroMeNot outputs a list of ignorome genes based on these parameters. If IgnoroMeNot is run with internet connection, it also provides users with all STRING interaction partners of these ignorome genes above ``--threshold_ppi`` via STRING API.
