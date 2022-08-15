@@ -5,8 +5,6 @@ Summary: Ignorome finder
 Home-page: https://github.com/anphan0828/IgnoroMeNot.git
 Author: An Phan
 Author-email: <ahphan@iastate.edu>
-License: UNKNOWN
-Platform: UNKNOWN
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
 Classifier: Operating System :: OS Independent
@@ -67,5 +65,3 @@ This command reads 3 input files, where the genes coming from E.coli (511145) ar
 ``--percentile_bot 1`` takes the bottom 1% annotated genes based on Wyatt Clark information content (those are the ignorome genes), and ``--threshold_ppi 850`` chooses STRING coexpression score (``511145.protein.links.full.v11.5.txt``) of 850 and above. The protein alias file (``511145.protein.aliases.v11.5.txt``) makes sure that protein names from different databases have their IDs mapped properly to STRING interaction network.
 
 IgnoroMeNot outputs a list of ignorome genes based on these parameters. If IgnoroMeNot is run with internet connection, it also provides users with all STRING interaction partners of these ignorome genes above ``--threshold_ppi`` via STRING API.
-
-
