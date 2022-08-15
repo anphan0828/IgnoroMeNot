@@ -5,7 +5,7 @@ from os import path
 
 here = path.abspath(path.dirname(__file__))
 
-VERSION = '0.0.5'
+VERSION = '0.0.6'
 DESCRIPTION = 'Ignorome finder'
 
 with open("README.md","r") as fh:
@@ -22,7 +22,7 @@ setup(
         long_description_content_type = 'text/markdown',
         license='GPLv3',
         packages=find_packages(),
-        install_requires=['networkx', 'matplotlib','numpy','Bio','requests','pandas'],
+        install_requires=['networkx', 'matplotlib','numpy','requests','pandas'],
         py_modules=["ignoromenot"],
         # package_dir={'': 'src'},
         entry_points={

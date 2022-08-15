@@ -1,0 +1,52 @@
+{% set name = "ignoromenot" %}
+{% set version = "0.0.5" %}
+
+package:
+  name: "{{ name|lower }}"
+  version: "{{ version }}"
+
+source:
+  url: "https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz"
+  sha256: 0505405a5a3956cd5fa88e89bab04c6ec19fe31fbbce2c72d11352a07e070312
+
+build:
+  number: 0
+  entry_points:
+    - ignoromenot = src.ignoromenot:main
+  script: "{{ PYTHON }} -m pip install . -vv"
+
+requirements:
+  host:
+    - bio
+    - matplotlib
+    - networkx
+    - numpy
+    - pandas
+    - pip
+    - python
+    - requests
+  run:
+    - bio
+    - matplotlib
+    - networkx
+    - numpy
+    - pandas
+    - python
+    - requests
+
+test:
+  commands:
+    - ignoromenot --help
+
+about:
+  home: "https://github.com/anphan0828/IgnoroMeNot.git"
+  license: "GNU General Public v3 (GPLv3)"
+  license_family: GPL3
+  license_file: 
+  summary: "Ignorome finder"
+  doc_url: 
+  dev_url: 
+
+extra:
+  recipe-maintainers:
+    - your-github-id-here

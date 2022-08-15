@@ -1,6 +1,5 @@
 networkx
 matplotlib
 numpy
-Bio
 requests
 pandas
