@@ -3,7 +3,6 @@ import codecs
 import os
 
 VERSION = '0.0.2'
-DESCRIPTION = 'This program outputs a list of ignorome genes highly associated with other well-annotated genes'
 
 # Setting up
 setup(
@@ -11,8 +10,9 @@ setup(
         version=VERSION,
         author="An Phan",
         author_email="<ahphan@iastate.edu>",
-        description=DESCRIPTION,
-        readme='README.md',
+        description="Finding ignorome",
+        long_description="This program outputs a list of ignorome genes highly associated with other well-annotated genes",
+        readme="README.md",
         packages=find_packages(),
         install_requires=[],
         classifiers = [
@@ -21,3 +21,5 @@ setup(
             "Operating System :: OS Independent",
         ]
 )
+
+

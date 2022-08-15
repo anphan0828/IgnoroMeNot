@@ -11,5 +11,5 @@ Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
 Classifier: Operating System :: OS Independent
 License-File: LICENSE
 
-UNKNOWN
+This program outputs a list of ignorome genes highly associated with other well-annotated genes
 
