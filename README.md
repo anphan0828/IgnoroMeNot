@@ -2,7 +2,7 @@
 IgnoroMeNot outputs a list of ignorome genes highly associated with other well-annotated genes. Ignorome genes are genes that have little to no validated experimental Gene Ontology annotations (see __xxx__). Strong associations between ignorome genes and well-annotated genes can help fill the gaps in the protein function space and improve the balance in knowledge between "annotation-rich" and "annotation-poor" genes.
 
 ## Installation
-IgnoreMeNot is available on [PyPI](https://pypi.org/project/ignoromenot/0.0.1/).
+IgnoreMeNot is available on [PyPI](https://pypi.org/project/ignoromenot/0.0.5/). IgnoroMeNot can be installed with [conda](https://anaconda.org/anphan0828/ignoromenot).
 
 ### Required files:
 IgnoroMeNot requires a tab-separated file of a list of genes with any single annotation metric (e.g. GO annotation count, information content, article count). Highest and lowest annotated genes are defined based on this metric. Below is an example of how the rank table should look like:

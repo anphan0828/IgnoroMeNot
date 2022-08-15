@@ -9,14 +9,12 @@ from networkx.algorithms import bipartite
 import sys
 import matplotlib.pyplot as plt
 import argparse
-import pickle as cp
 import math
 import numpy as np
 from numpy import percentile
 import Bio
 from Bio.UniProt import GOA
 from Bio.Seq import Seq
-from dateutil import parser
 import os
 import requests
 import pandas as pd

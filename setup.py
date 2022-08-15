@@ -1,8 +1,11 @@
 from setuptools import setup, find_packages
 import codecs
 import os
+from os import path
 
-VERSION = '0.0.4'
+here = path.abspath(path.dirname(__file__))
+
+VERSION = '0.0.5'
 DESCRIPTION = 'Ignorome finder'
 
 with open("README.md","r") as fh:
@@ -17,10 +20,16 @@ setup(
         description=DESCRIPTION,
         long_description=long_description,
         long_description_content_type = 'text/markdown',
+        license='GPLv3',
         packages=find_packages(),
-        install_requires=[],
+        install_requires=['networkx', 'matplotlib','numpy','Bio','requests','pandas'],
         py_modules=["ignoromenot"],
-        package_dir={'': 'src'},
+        # package_dir={'': 'src'},
+        entry_points={
+            'console_scripts':[
+                'ignoromenot = src.ignoromenot:main',
+            ]
+        },
         url="https://github.com/anphan0828/IgnoroMeNot.git",
         classifiers = [
             "Programming Language :: Python :: 3",
