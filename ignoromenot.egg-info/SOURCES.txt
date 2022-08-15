@@ -1,0 +1,8 @@
+LICENSE
+README.md
+pyproject.toml
+setup.py
+ignoromenot.egg-info/PKG-INFO
+ignoromenot.egg-info/SOURCES.txt
+ignoromenot.egg-info/dependency_links.txt
+ignoromenot.egg-info/top_level.txt

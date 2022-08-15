@@ -1,0 +1,15 @@
+Metadata-Version: 2.1
+Name: ignoromenot
+Version: 0.0.1
+Summary: This program outputs a list of ignorome genes highly associated with other well-annotated genes
+Author: An Phan
+Author-email: <ahphan@iastate.edu>
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: GNU License
+Classifier: Operating System :: OS Independent
+License-File: LICENSE
+
+UNKNOWN
+
