@@ -1,0 +1,7 @@
+include *.toml
+recursive-include demodata *.tsv
+recursive-include demodata *.txt
+recursive-include dist *.gz
+recursive-include dist *.whl
+recursive-include src *.py
+recursive-include src *.pyc
