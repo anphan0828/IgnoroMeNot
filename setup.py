@@ -27,7 +27,7 @@ setup(
         # package_dir={'': 'src'},
         entry_points={
             'console_scripts':[
-                'ignoromenot = src.ignoromenot:main',
+                'ignoromenot = ignoromenot:main',
             ]
         },
         url="https://github.com/anphan0828/IgnoroMeNot.git",
