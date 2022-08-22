@@ -1,2 +1,2 @@
 [console_scripts]
-ignoromenot = src.ignoromenot:main
+ignoromenot = ignoromenot.ignoromenot:main

@@ -1,5 +1,6 @@
 networkx
 matplotlib
 numpy
+Biopython
 requests
 pandas
