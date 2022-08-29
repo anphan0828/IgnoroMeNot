@@ -1,5 +1,5 @@
 # IgnoroMeNot
-IgnoroMeNot outputs a list of ignorome genes highly associated with other well-annotated genes. Ignorome genes are genes that have little to no validated experimental Gene Ontology annotations (see this [publication](https://doi.org/10.1371/journal.pbio.2006643) or [this](doi:10.1371/journal.pone.0088889) ). Strong associations between ignorome genes and well-annotated genes can help fill the gaps in the protein function space and improve the balance in knowledge between "annotation-rich" and "annotation-poor" genes.
+IgnoroMeNot outputs a list of ignorome genes highly associated with other well-annotated genes. Ignorome genes are genes that have little to no validated experimental Gene Ontology annotations (see this [publication](https://doi.org/10.1371/journal.pbio.2006643) or [this](doi:10.1371/journal.pone.0088889)). Strong associations between ignorome genes and well-annotated genes can help fill the gaps in the protein function space and improve the balance in knowledge between "annotation-rich" and "annotation-poor" genes.
 
 ## Installation
 IgnoreMeNot is available on [PyPI](https://pypi.org/project/ignoromenot/). To install, enter this command in Terminal:
@@ -22,32 +22,53 @@ Additionally, a STRING interaction network and a protein alias file of the organ
 
 ## IgnoroMeNot usage:
 ```
-usage: ignoromenot.py [-h] --ranktable RANKTABLE --idtable IDTABLE --stringppi STRINGPPI
+usage: ignoromenot.py [-h] --ranktable RANKTABLE --idtable IDTABLE --stringppi
+                      STRINGPPI
                       [--threshold_top THRESHOLD_TOP | --percentile_top PERCENTILE_TOP]
                       [--threshold_bot THRESHOLD_BOT | --percentile_bot PERCENTILE_BOT]
-                      [--threshold_ppi THRESHOLD_PPI | --percentile_ppi PERCENTILE_PPI] 
+                      [--threshold_ppi THRESHOLD_PPI | --percentile_ppi PERCENTILE_PPI]
 
-Optional arguments:
--h, --help                  Show this help message and exit
--ttop, --threshold_top      Set an absolute upper threshold for most annotated genes based on the given metric. 
-                            Default to 100
--ptop, --percentile_top     Set a relative upper threshold for most annotated genes at k-th percentile based on the given metric. 
-                            Cannot be provided simultaneously with --threshold_top
--tbot, --threshold_bot      Set an absolute lower threshold for least annotated genes based on the given metric. 
-                            Default to 5
--pbot, --percentile_bot     Set a relative lower threshold for least annotated genes at k-th percentile based on the given metric. 
-                            Cannot be provided simultaneously with --threshold_bot
--tppi, --threshold_ppi      Set an absolute upper threshold for STRING protein-protein interaction score. 
-                            Default to 500
--pppi, --percentile_ppi     Set a relative upper threshold for STRING protein-protein interaction score.
-                            Cannot be provided simultaneously with --threshold_ppi
-                            
+IgnoroMeNot find ignorome genes
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --threshold_top THRESHOLD_TOP, -ttop THRESHOLD_TOP
+                        Set an absolute upper threshold for most annotated genes based
+                        on the given metric. Default to 100
+  --percentile_top PERCENTILE_TOP, -ptop PERCENTILE_TOP
+                        Set a relative upper threshold for most annotated genes at
+                        k-th percentile based on the given metric. Cannot be provided
+                        simultaneously with --threshold_top.Example: -ptop 95 selects
+                        top 5% of genes with highest value
+  --threshold_bot THRESHOLD_BOT, -tbot THRESHOLD_BOT
+                        Set an absolute lower threshold for least annotated genes
+                        based on the given metric. Default to 5
+  --percentile_bot PERCENTILE_BOT, -pbot PERCENTILE_BOT
+                        Set a relative lower threshold for least annotated genes at
+                        k-th percentile based on the given metric. Cannot be provided
+                        simultaneously with --threshold_bot.Example: -pbot 10 selects
+                        top 10% of genes with lowest value
+  --threshold_ppi THRESHOLD_PPI, -tppi THRESHOLD_PPI
+                        Set an absolute upper threshold for STRING protein-protein
+                        interaction score. Default to 500
+  --percentile_ppi PERCENTILE_PPI, -pppi PERCENTILE_PPI
+                        Set a relative upper threshold for STRING protein-protein
+                        interaction score. Cannot be provided simultaneously with
+                        --threshold_ppi.Example: -pppi 95 selects top 5% of associated
+                        pairs with highest score
+
 Required arguments:
--rank, --ranktable          The path to a tab-separated file of a list of genes with any single annotation metric (see above sample rank table)
--id, --idtable              The path to a STRING protein alias file of the organism being examined. 
-                            The filename must start with the organism ID (e.g., 9606 for human, 511145 for E.coli)
--ppi, --stringppi           The path to a STRING interaction network of the organism being examined.
-                            The filename must start with the organism ID (e.g., 9606 for human, 511145 for E.coli)
+  --ranktable RANKTABLE, -rank RANKTABLE
+                        The path to a tab-separated file of a list of genes with any
+                        single annotation metric (see above sample rank table)
+  --idtable IDTABLE, -id IDTABLE
+                        The path to a STRING protein alias file of the organism being
+                        examined. The filename must start with the organism ID (e.g.,
+                        9606 for human, 511145 for E.coli)
+  --stringppi STRINGPPI, -ppi STRINGPPI
+                        The path to a STRING interaction network of the organism being
+                        examined. The filename must start with the organism ID (e.g.,
+                        9606 for human, 511145 for E.coli)
 ```
 ### Example usage:
 Demo data of E.coli are included in the GitHub repository.
