@@ -41,26 +41,31 @@ def parse_commandlinearguments():
 
     required_arguments = parser.add_argument_group("Required arguments")
     required_arguments.add_argument('--ranktable', '-rank', required=True,
-                                    help="Ranking table with 1st column being gene names, other columns being metrics")
+                                    help="The path to a tab-separated file of a list of genes with any single "
+                                         "annotation metric (see above sample rank table)")
     required_arguments.add_argument('--idtable', '-id', required=True,
-                                    help="ID mapping table from STRING")
-    required_arguments.add_argument('--stringppi', '-ppi', help="Protein-protein interaction network from STRING",
-                                    required=True)
+                                    help="The path to a STRING protein alias file of the organism being examined.\n"
+                                         "The filename must start with the organism ID (e.g., 9606 for human, 511145 for E.coli)")
+    required_arguments.add_argument('--stringppi', '-ppi', required=True,
+                                    help="The path to a STRING interaction network of the organism being examined.\n"
+                                         "The filename must start with the organism ID (e.g., 9606 for human, 511145 for E.coli)")
     mutex_parser_top_thresh.add_argument('--threshold_top', '-ttop', default=100,
-                                         help="The threshold level above which most-annotated genes will be selected")
+                                         help="Set an absolute upper threshold for most annotated genes based on the given metric.\nDefault to 100")
     mutex_parser_top_thresh.add_argument('--percentile_top', '-ptop',
-                                         help="Genes at k-th percentile and above will be selected. "
+                                         help="Set a relative upper threshold for most annotated genes at k-th percentile based on the given metric.\n"
+                                              "Cannot be provided simultaneously with --threshold_top."
                                               "Example: -ptop 95 selects top 5%% of genes with highest value")
     mutex_parser_bot_thresh.add_argument('--threshold_bot', '-tbot', default=5,
-                                         help="The threshold level under which least-annotated genes will be selected")
+                                         help="Set an absolute lower threshold for least annotated genes based on the given metric.\nDefault to 5")
     mutex_parser_bot_thresh.add_argument('--percentile_bot', '-pbot',
-                                         help="Genes at k-th percentile and below will be selected. "
+                                         help="Set a relative lower threshold for least annotated genes at k-th percentile based on the given metric.\n"
+                                              "Cannot be provided simultaneously with --threshold_bot."
                                               "Example: -pbot 10 selects top 10%% of genes with lowest value")
     mutex_parser_ppi_thresh.add_argument('--threshold_ppi', '-tppi', default=500,
-                                         help="The threshold value (0-1000) above which "
-                                              "STRING interaction scores will be selected")
+                                         help="Set an absolute upper threshold for STRING protein-protein interaction score.\nDefault to 500")
     mutex_parser_ppi_thresh.add_argument('--percentile_ppi', '-pppi',
-                                         help="STRING interaction pairs at k-th percentile and above will be selected. "
+                                         help="Set a relative upper threshold for STRING protein-protein interaction score.\n"
+                                              "Cannot be provided simultaneously with --threshold_ppi."
                                               "Example: -pppi 95 selects top 5%% of associated pairs with highest score")
     args = parser.parse_args()
     return args
@@ -210,7 +215,7 @@ def common_to_string(idtable, ranktable, genelist):
 
 def get_network_api(calculated_threshold, gene_all_common, species):
     """
-    This function uses STRING API to get interaction partners of target genes
+    This function uses STRING API to get interaction partners of target genes (with internet)
     :param calculated_threshold: interaction threshold
     :param gene_all_common: list of ignorome genes
     :param species: species ID
