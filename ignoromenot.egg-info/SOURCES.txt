@@ -5,6 +5,8 @@ setup.py
 demodata/511145.protein.aliases.v11.5.txt
 demodata/511145.protein.links.full.v11.5.txt
 demodata/WyattClarkIC-perprotein.tsv
+dist/ignoromenot-0.0.9-py3-none-any.whl
+dist/ignoromenot-0.0.9.tar.gz
 ignoromenot/__init__.py
 ignoromenot/ignoromenot.py
 ignoromenot.egg-info/PKG-INFO
