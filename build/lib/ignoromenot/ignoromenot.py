@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 # This script finds ignorome that are highly-associated with highly-annotated genes
-# Ranking currently based on Wyatt Clark information content
+# Ranking currently based on Wyatt Clark information content -> based on GAF-calculated files
 # Association currently based on STRING co-expression
 
 from __future__ import print_function
 from __future__ import division
+import collections
+import datetime
+
 import networkx as nx
 from networkx.algorithms import bipartite
 import sys
@@ -19,7 +22,10 @@ from Bio.Seq import Seq
 import os
 import requests
 import pandas as pd
-
+from dateutil import parser
+import debias_supp as debias
+import pickle as cp
+import time
 
 # Global variables
 verbose = 0
@@ -28,6 +34,26 @@ STRING_API_URL = "https://version-11-5.string-db.org/api"
 output_format = "tsv-no-header"
 method = "interaction_partners"  # network or interaction_partners
 request_url = "/".join([STRING_API_URL, output_format, method])
+
+# Files needed for debias:
+DATADIR = "data_for_ignoromenot/" # TODO: run debias_prep instead of providing readily used files
+# os.chdir('bar/')
+# Some filenames
+FILE_ALTERNATE_ID_TO_ID_MAPPING = DATADIR + "alt_to_id.graph"
+FILE_MFO_ONTOLOGY_GRAPH = DATADIR + "mf.graph"
+FILE_BPO_ONTOLOGY_GRAPH = DATADIR + "bp.graph"
+FILE_CCO_ONTOLOGY_GRAPH = DATADIR + "cc.graph"
+FILE_MFO_ONTOLOGY_ANCESTORS_GRAPH = DATADIR + "mf_ancestors.map"
+FILE_BPO_ONTOLOGY_ANCESTORS_GRAPH = DATADIR + "bp_ancestors.map"
+FILE_CCO_ONTOLOGY_ANCESTORS_GRAPH = DATADIR + "cc_ancestors.map"
+
+debias.FILE_ALTERNATE_ID_TO_ID_MAPPING = FILE_ALTERNATE_ID_TO_ID_MAPPING
+debias.FILE_MFO_ONTOLOGY_GRAPH = FILE_MFO_ONTOLOGY_GRAPH
+debias.FILE_BPO_ONTOLOGY_GRAPH = FILE_BPO_ONTOLOGY_GRAPH
+debias.FILE_CCO_ONTOLOGY_GRAPH = FILE_CCO_ONTOLOGY_GRAPH
+debias.FILE_MFO_ONTOLOGY_ANCESTORS_GRAPH = FILE_MFO_ONTOLOGY_ANCESTORS_GRAPH
+debias.FILE_BPO_ONTOLOGY_ANCESTORS_GRAPH = FILE_BPO_ONTOLOGY_ANCESTORS_GRAPH
+debias.FILE_CCO_ONTOLOGY_ANCESTORS_GRAPH = FILE_CCO_ONTOLOGY_ANCESTORS_GRAPH
 
 
 def parse_commandlinearguments():
@@ -38,29 +64,44 @@ def parse_commandlinearguments():
     mutex_parser_top_thresh = parser.add_mutually_exclusive_group()
     mutex_parser_bot_thresh = parser.add_mutually_exclusive_group()
     mutex_parser_ppi_thresh = parser.add_mutually_exclusive_group()
+    specifier_parser = parser.add_argument_group("Specifiers")
 
     required_arguments = parser.add_argument_group("Required arguments")
-    required_arguments.add_argument('--ranktable', '-rank', required=True,
-                                    help="Ranking table with 1st column being gene names, other columns being metrics")
+    required_arguments.add_argument('--input', '-i', required=True,
+                                    help="Input could be a path to a tab-separated file of a list of genes with any single "
+                                         "annotation metric (see above sample rank table) or\n"
+                                         "Input could be a GO Annotation File (GAF). In this case, filename must end with .gaf")
     required_arguments.add_argument('--idtable', '-id', required=True,
-                                    help="ID mapping table from STRING")
-    required_arguments.add_argument('--stringppi', '-ppi', help="Protein-protein interaction network from STRING",
-                                    required=True)
+                                    help="The path to a STRING protein alias file of the organism being examined.\n"
+                                         "The filename must start with the organism ID (e.g., 9606 for human, 511145 for E.coli)")
+    required_arguments.add_argument('--stringppi', '-ppi', required=True,
+                                    help="The path to a STRING interaction network of the organism being examined.\n"
+                                         "The filename must start with the organism ID (e.g., 9606 for human, 511145 for E.coli)")
+    specifier_parser.add_argument('--metric', '-m', default="ct",
+                                    help="A single annotation metric obtained from GAF based on which the proteins will be ranked. If not specified,"
+                                         "proteins will be ranked based on annotation count.\n"
+                                         "Accepted metrics: ct, ic, ia. Default to 'ct' ")
+    specifier_parser.add_argument('--aspect', '-a', default="All",
+                                    help="If GAF file is provided as input, specify which aspect of GO to rank the proteins. If not specified, "
+                                         "proteins will be ranked based on the total value across 3 aspects.\n"
+                                         "Accepted aspects: All, MFO, BPO, CCO. Default to 'All' (sum accross 3 aspects).")
     mutex_parser_top_thresh.add_argument('--threshold_top', '-ttop', default=100,
-                                         help="The threshold level above which most-annotated genes will be selected")
+                                         help="Set an absolute upper threshold for most annotated genes based on the given metric.\nDefault to 100")
     mutex_parser_top_thresh.add_argument('--percentile_top', '-ptop',
-                                         help="Genes at k-th percentile and above will be selected. "
+                                         help="Set a relative upper threshold for most annotated genes at k-th percentile based on the given metric.\n"
+                                              "Cannot be provided simultaneously with --threshold_top."
                                               "Example: -ptop 95 selects top 5%% of genes with highest value")
     mutex_parser_bot_thresh.add_argument('--threshold_bot', '-tbot', default=5,
-                                         help="The threshold level under which least-annotated genes will be selected")
+                                         help="Set an absolute lower threshold for least annotated genes based on the given metric.\nDefault to 5")
     mutex_parser_bot_thresh.add_argument('--percentile_bot', '-pbot',
-                                         help="Genes at k-th percentile and below will be selected. "
+                                         help="Set a relative lower threshold for least annotated genes at k-th percentile based on the given metric.\n"
+                                              "Cannot be provided simultaneously with --threshold_bot."
                                               "Example: -pbot 10 selects top 10%% of genes with lowest value")
     mutex_parser_ppi_thresh.add_argument('--threshold_ppi', '-tppi', default=500,
-                                         help="The threshold value (0-1000) above which "
-                                              "STRING interaction scores will be selected")
+                                         help="Set an absolute upper threshold for STRING protein-protein interaction score.\nDefault to 500")
     mutex_parser_ppi_thresh.add_argument('--percentile_ppi', '-pppi',
-                                         help="STRING interaction pairs at k-th percentile and above will be selected. "
+                                         help="Set a relative upper threshold for STRING protein-protein interaction score.\n"
+                                              "Cannot be provided simultaneously with --threshold_ppi."
                                               "Example: -pppi 95 selects top 5%% of associated pairs with highest score")
     args = parser.parse_args()
     return args
@@ -74,15 +115,46 @@ def parse_commandlinearguments():
 #             print(string, end="")
 #         print()
 
+# __init__.py (hash and hash)
+# intermediate file keeps all the metrics
+# make a new branch on gothresher, modify it
+# use different name, gocrusher
 
-def rank_gaf_file(gaf_input):
+def rank_gaf_file(gaf_input, metric, aspect):
     # TODO: handle multiple input files (enumerate(options.input))
     """Takes 1 GAF file as input and return ranked data frame of 4 per-protein metrics:
     annotation count, article count, information content, propagated information content
     """
-    gaf_output = GOA._gaf20iterator(open(gaf_input, "r"))  # generator object, each row is a dict
-    # TODO: aggregate metrics per protein and get ranking
-    return gaf_output
+    # gaf_input = '/home/ahphan/RotationData/Friedberg/gaf_files/Only_Experimental_Annotations/goa_human27Jul22Filtered.gaf'
+    # metric = "ct"
+    # aspect = "MFO"
+    gaf = GOA._gaf20iterator(open(gaf_input, "r"))
+    data = debias.convertFromGAFToRequiredFormat(gaf)
+    # Prot_to_GO_Map, all_GO_Terms_in_corpus = debias.createProteinToGOMapping(data)
+    # Prot_to_GO_Map_propagated = debias.propagateOntologies(Prot_to_GO_Map)
+    prev_go_term_freq = debias.freqGO_TERM(data)
+    data, goia_f, goia_p, goia_c = debias.calculateWyattClarkInformationContent(data, 1, 0, None, './', 0)
+    new_data, discarded_data = debias.chooseProteinsBasedOnPublications(data, 0, None)
+    later_go_term_freq = debias.freqGO_TERM(data)
+    ct_dict, ic_dict, ia_dict = debias.generateHistogram(data, data, discarded_data, 0, prev_go_term_freq,
+                      later_go_term_freq, goia_f, goia_p, goia_c)
+    data_dict = str(metric) + "_dict"
+    ranktable = pd.DataFrame.from_dict(ct_dict,orient='index')
+    ranktable.columns = [str(metric)+"_All", str(metric)+"_F", str(metric)+"_P", str(metric)+"_C"]
+    ranktable.reset_index(inplace=True)
+    ranktable=ranktable.rename(columns={"index":"Genes"})
+    if aspect == "All":
+        ranktable=ranktable.iloc[0,[0,1]]
+    elif aspect == "MFO":
+        ranktable=ranktable.iloc[:,[0,2]]
+    elif aspect == "BPO":
+        ranktable=ranktable.iloc[:,[0,3]]
+    elif aspect == "CCO":
+        ranktable=ranktable.iloc[:,[0,4]]
+    else:
+        print("Error in aspect code. Please choose one of the following: All, MFO, BPO, CCO")
+        exit()
+    return ranktable
 
 
 def filter_most_annotated(ranktable, ttop, ptop):
@@ -93,8 +165,8 @@ def filter_most_annotated(ranktable, ttop, ptop):
     :param ptop: percentile threshold
     :return: list of top genes
     """
-    allrank = pd.read_csv(ranktable, sep="\t", header=0)
-    # TODO: create dict metric["prot"] = ["string_id", "preferred_name", "count", "wc_ic", ...]
+    # allrank = pd.read_csv(ranktable, sep="\t", header=0) # TODO: parse ranktable here, categorize from main with options.input
+    allrank = ranktable
     most_annt_list = []
 
     # Get threshold and filter for each metric
@@ -105,7 +177,8 @@ def filter_most_annotated(ranktable, ttop, ptop):
     for index, row in allrank.iterrows():  # another loop if >1 metric
         if row[1] >= threshold:
             most_annt_list.append(row[0])
-    print("IC threshold for most annotated genes:", threshold)
+    print()
+    print("Absolute threshold for most annotated genes:", threshold)
     return most_annt_list
 
 
@@ -117,7 +190,8 @@ def filter_least_annotated(ranktable, tbot, pbot):
     :param pbot: percentile threshold
     :return: list of bot genes
     """
-    allrank = pd.read_csv(ranktable, sep="\t", header=0)
+    # allrank = pd.read_csv(ranktable, sep="\t", header=0)
+    allrank = ranktable
     least_annt_list = []
 
     # Get threshold and filter for each metric
@@ -128,7 +202,7 @@ def filter_least_annotated(ranktable, tbot, pbot):
     for index, row in allrank.iterrows():  # another loop if >1 metric
         if row[1] <= threshold:
             least_annt_list.append(row[0])
-    print("IC threshold for least annotated genes:", threshold)
+    print("Absolute threshold for least annotated genes:", threshold)
     return least_annt_list
 
 
@@ -141,7 +215,7 @@ def associated_ignorome(all_ppi, tppi, pppi, most, least, idtable, ranktable):
     :param most: list of top genes
     :param least: list of bot genes
     :param idtable: path to STRING alias file (or another id mapping table)
-    :param ranktable: path to ranktable
+    :param ranktable: pd.DataFrame ranktable with 2 columns: Genes and metric
     :return: interaction threshold, ignorome genes, highly-annotated genes interacting with ignorome
     """
     all_ppi = pd.read_csv(all_ppi, header=0, delim_whitespace=True)
@@ -162,15 +236,22 @@ def associated_ignorome(all_ppi, tppi, pppi, most, least, idtable, ranktable):
     # Get ignorome genes: have low knowledge/interest but interact strongly with high knowledge/interest genes
     most_least = coexp[coexp['protein1'].isin(string_most) & coexp['protein2'].isin(string_least)].\
         sort_values(by='coexpression', ascending=False)
+    print(most_least)
     known_set = set(most_least.iloc[:, 0].tolist())
     ignorome_set = set(most_least.iloc[:, 1].tolist())
+    ignorome_common = []
+    for ignorome in ignorome_set:
+        common = idmapping.loc[idmapping['string_id']==ignorome, 'alias']
+        ignorome_common.append(common)
     # print("\nStrongest most-least annotated pairs:\n", most_least.head(10))
 
     # Print results with STRING ids, information value
     ignorome_table = idmapping[idmapping['string_id'].isin(ignorome_set)]
     known_table = idmapping[idmapping['string_id'].isin(known_set)]
-    print("\nTotal ignorome found:", len(ignorome_set), ignorome_table['string_id'].to_list())
+    print("\nTotal ignorome found:", len(ignorome_common), list(ignorome_common))
     print(ignorome_table)
+    now = datetime.datetime.now
+    ignorome_table.to_csv('./Ignorome_Genes_' + time.strftime(r"%Y-%m-%d-%H-%M-%S",time.localtime()) + '.tsv', sep="\t", header=True)
     return threshold, ignorome_set, known_set
 
 
@@ -190,11 +271,11 @@ def common_to_string(idtable, ranktable, genelist):
     """
     This function takes UniProt protein symbols and returns STRING ids
     :param idtable: path to STRING alias file
-    :param ranktable: path to ranktable (common gene names)
+    :param ranktable: pd.DataFrame ranktable with 2 columns: Genes (common names) and metric
     :param genelist: input common gene names
     :return: gene STRING ids and idmapping table
     """
-    ranktable = pd.read_csv(ranktable, sep="\t", header=0).rename(columns={"DB_Object_Symbol": "alias"})
+    ranktable.columns.values[0] = "alias"
     idtable = pd.read_csv(idtable, sep="\t", header=0, names=["string_id", "alias", "source"],
                           usecols=["string_id", "alias"])
     all_idmapping = pd.merge(ranktable, idtable, on="alias", how="left")
@@ -210,7 +291,7 @@ def common_to_string(idtable, ranktable, genelist):
 
 def get_network_api(calculated_threshold, gene_all_common, species):
     """
-    This function uses STRING API to get interaction partners of target genes
+    This function uses STRING API to get interaction partners of target genes (with internet)
     :param calculated_threshold: interaction threshold
     :param gene_all_common: list of ignorome genes
     :param species: species ID
@@ -230,7 +311,7 @@ def get_network_api(calculated_threshold, gene_all_common, species):
         l = line.strip().split("\t")
         p1, p2 = l[0], l[1]  # protein preferred name
         # filter the interaction according to coexpression score (l[9])
-        coexpression_score = float(l[10])
+        coexpression_score = float(l[9])
         if coexpression_score > float(calculated_threshold)/1000:
             # print
             print("\t".join([p1, p2, "coexpression (score. %.3f)" % coexpression_score]))
@@ -247,13 +328,18 @@ def main():
 
     # # Execute ranking from GAF file
     # ranktable = rank_gaf_file(options.input)
+    if options.input.split("/")[-1].split(".")[-1] != "gaf":
+        # Find ignorome from ranktable
+        ranktable = pd.read_csv(options.input, sep="\t")
+    else:
+        ranktable = rank_gaf_file(options.input, options.metric, options.aspect)
 
-    # Find ignorome from ranktable
-    most = filter_most_annotated(options.ranktable, options.threshold_top, options.percentile_top)
-    least = filter_least_annotated(options.ranktable, options.threshold_bot, options.percentile_bot)
+    most = filter_most_annotated(ranktable, options.threshold_top, options.percentile_top)
+    least = filter_least_annotated(ranktable, options.threshold_bot, options.percentile_bot)
     coexp_threshold, ignorome_list, known_list = associated_ignorome(options.stringppi, options.threshold_ppi,
                                                                      options.percentile_ppi, most, least,
-                                                                     options.idtable, options.ranktable)
+                                                                     options.idtable, ranktable)
+
     species = options.idtable.split("/")[-1].split(".")[0]
     get_network_api(coexp_threshold, ignorome_list, species)
 

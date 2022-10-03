@@ -670,12 +670,12 @@ def calculateWyattClarkInformationContent(data, recal, crisp, percentile_val, ou
     # vprint(outputfiles[0].split("_"))
     ontology_to_ia_map_filename = "ontology_to_ia_map_" + "_".join(
         outputfiles[input_num].split("/")[-1].split("_")[:-2]) + ".txt"
-    goia_f_filename = "goia_f"+"_".join(
-        outputfiles[input_num].split("/")[-1].split("_")[:-2]) + ".txt"
-    goia_p_filename = "goia_p" + "_".join(
-        outputfiles[input_num].split("/")[-1].split("_")[:-2]) + ".txt"
-    goia_c_filename = "goia_c" + "_".join(
-        outputfiles[input_num].split("/")[-1].split("_")[:-2]) + ".txt"
+    # goia_f_filename = "goia_f"+"_".join(
+    #     outputfiles[input_num].split("/")[-1].split("_")[:-2]) + ".txt"
+    # goia_p_filename = "goia_p" + "_".join(
+    #     outputfiles[input_num].split("/")[-1].split("_")[:-2]) + ".txt"
+    # goia_c_filename = "goia_c" + "_".join(
+    #     outputfiles[input_num].split("/")[-1].split("_")[:-2]) + ".txt"
     # vprint(ontology_to_ia_map_filename)
     # exit()
     Prot_to_GO_Map, all_GO_Terms_in_corpus = createProteinToGOMapping(data)
@@ -687,27 +687,27 @@ def calculateWyattClarkInformationContent(data, recal, crisp, percentile_val, ou
         if os.path.isdir("data/temp/") == False:
             os.makedirs("data/temp/")
         cp.dump(ontology_to_ia_map, open("data/temp/" + ontology_to_ia_map_filename, "wb"))  #TODO: dump 3 goia dicts, too
-        cp.dump(goia_f, open("data/temp/"+ goia_f_filename, "wb"))
-        cp.dump(goia_p, open("data/temp/"+ goia_p_filename, "wb"))
-        cp.dump(goia_c, open("data/temp/"+ goia_c_filename, "wb"))
+        # cp.dump(goia_f, open("data/temp/"+ goia_f_filename, "wb"))
+        # cp.dump(goia_p, open("data/temp/"+ goia_p_filename, "wb"))
+        # cp.dump(goia_c, open("data/temp/"+ goia_c_filename, "wb"))
     else:
         vprint("Skipping recalculation of Information Accretion for Wyatt Clark")
     try:
         ontology_to_ia_map = cp.load(open("data/temp/" + ontology_to_ia_map_filename, "rb")) #TODO: load 3 goia dicts
-        goia_f = cp.load(open("data/temp/" + ontology_to_ia_map_filename, "rb"))
-        goia_p = cp.load(open("data/temp/" + ontology_to_ia_map_filename, "rb"))
-        goia_c = cp.load(open("data/temp/" + ontology_to_ia_map_filename, "rb"))
+        # goia_f = cp.load(open("data/temp/" + ontology_to_ia_map_filename, "rb"))
+        # goia_p = cp.load(open("data/temp/" + ontology_to_ia_map_filename, "rb"))
+        # goia_c = cp.load(open("data/temp/" + ontology_to_ia_map_filename, "rb"))
     except IOError as e:
         print("File for GO_Term to ia NOT FOUND. Please rerun the program with the argument -recal 1")
         exit()
     protInfoAccretion = calculateInformationAccretionForEachProtein(Prot_to_GO_Map_propagated, ontology_to_ia_map )
-    print("Printing Wyatt Clark IA per protein: ")
-    fhwc = open("WyattClarkIC-perprotein.tsv", "w") # just for IgnoroMeNot use
-    fhwc.write("DB_Object_Symbol\tWyattClarkIC\n")
-    for prot in protInfoAccretion:  # a dict of IA per protein
-        # print(protInfoAccretion[prot], ia)
-        prot_noDB = prot.split("_")[-1]
-        fhwc.write(prot_noDB + "\t" + str(protInfoAccretion[prot]) + "\n")
+    # print("Printing Wyatt Clark IA per protein: ")
+    # fhwc = open("WyattClarkIC-perprotein.tsv", "w") # just for IgnoroMeNot use
+    # fhwc.write("DB_Object_Symbol\tWyattClarkIC\n")
+    # for prot in protInfoAccretion:  # a dict of IA per protein
+    #     # print(protInfoAccretion[prot], ia)
+    #     prot_noDB = prot.split("_")[-1]
+    #     fhwc.write(prot_noDB + "\t" + str(protInfoAccretion[prot]) + "\n")
     ia = []
     for mapping in ontology_to_ia_map:
         if ontology_to_ia_map[mapping][0] != 0:
@@ -729,10 +729,10 @@ def calculateWyattClarkInformationContent(data, recal, crisp, percentile_val, ou
         # the histogram of the data
         # n, bins, patches = plt.hist(ia, num_bins, facecolor='green', alpha=0.9)
         # plt.show()
-    print("Printing Wyatt Clark IC per term:") # not doing filter to save time, term not in later.txt (after -cprot 100 is not included -> KeyError when loop over dict)
+    # print("Printing Wyatt Clark IC per term:") # not doing filter to save time, term not in later.txt (after -cprot 100 is not included -> KeyError when loop over dict)
     for attnid in data:
         annotation = data[attnid]
-        print(annotation["GO_ID"], ontology_to_ia_map[annotation["GO_ID"]][1])
+        # print(annotation["GO_ID"], ontology_to_ia_map[annotation["GO_ID"]][1])
         if ontology_to_ia_map[annotation["GO_ID"]][1] >= threshold:
             new_data[attnid] = data[attnid]
 
@@ -1278,7 +1278,7 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, go
         # fhi.write(str(i) + "\t" + str(prot_go_dict[i]) + "\t" + str(set(prot_go_dict[i])) + "\t")   # with IC
         afhi.write(str(i) + "\t")
         prot_go_dict[i] = set(prot_go_dict[i]) # Remove for with IC stuff
-        print(i, prot_go_dict[i])
+        # print(i, prot_go_dict[i])
         mfo_ic = 0
         bpo_ic = 0
         cco_ic = 0
@@ -1329,7 +1329,7 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, go
         # fhi.write(str(i) + "\t" + str(prot_go_dict[i]) + "\t" + str(set(prot_go_dict[i])) + "\t")   # with IC
         bfhi.write(str(i) + "\t")
         prot_go_dict[i] = set(prot_go_dict[i]) # Remove for with IC stuff
-        print(i, prot_go_dict[i])
+        # print(i, prot_go_dict[i])
         mfo_ic = 0
         bpo_ic = 0
         cco_ic = 0
@@ -1640,7 +1640,7 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, go
         # fhi.write(str(i) + "\t" + str(prot_go_dict[i]) + "\t" + str(set(prot_go_dict[i])) + "\t") # With IC stuff
         afhi.write(str(i) + "\t")
         prot_go_dict[i] = set(prot_go_dict[i])    # removed for with IC
-        print(i, prot_go_dict[i])
+        # print(i, prot_go_dict[i])
         mfo_ic = 0
         bpo_ic = 0
         cco_ic = 0
@@ -1699,7 +1699,7 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, go
         # fhi.write(str(i) + "\t" + str(prot_go_dict[i]) + "\t" + str(set(prot_go_dict[i])) + "\t") # With IC stuff
         bfhi.write(str(i) + "\t")
         prot_go_dict[i] = set(prot_go_dict[i])  # removed for with IC
-        print(i, prot_go_dict[i])
+        # print(i, prot_go_dict[i])
         mfo_ic = 0
         bpo_ic = 0
         cco_ic = 0

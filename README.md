@@ -18,7 +18,7 @@ IgnoroMeNot requires a tab-separated file of a list of genes/gene products with 
 | NUDT4B | 55.34890734396416 |
 |  HTT   | 99.78875455312165 |
 
-Ignoromenot also supports the calculation of three per-protein metrics: GO annotation count, information content, information accretion, if provided a Gene Ontology Annotation File (GAF). If a GAF is provided, users need to specify which metric should be used for ranking (refer to usage).
+Ignoromenot also supports the calculation of three per-protein metrics: GO annotation count ('ct'), Phillip Lord information content ('ic'), Wyatt Clark information content ('ia'), if provided a Gene Ontology Annotation File (GAF). If a GAF is provided, users need to specify which metric should be used for ranking (refer to usage).
 
 Additionally, a STRING interaction network and a protein alias file of the organism to be examined are required and can be downloaded from [STRING](string-db.org/cgi/download). Example: E. coli [alias file](https://stringdb-static.org/download/protein.aliases.v11.5/511145.protein.aliases.v11.5.txt.gz) and [interaction network](https://stringdb-static.org/download/protein.links.full.v11.5/511145.protein.links.full.v11.5.txt.gz). Note: large STRING files (e.g., human-id:9606) may cause IDE to crash.
 
@@ -76,14 +76,14 @@ Required arguments:
 ```
 ### Example usage:
 Demo data of E.coli are included in the GitHub repository.
-#### Input: tab-separated file containing a list of and one metric:
+#### Input: tab-separated file containing a list of genes and values belonging to one metric:
 ```$ ignoromenot --input demodata/WyattClarkIC-perprotein.tsv --idtable demodata/511145.protein.aliases.v11.5.txt --stringppi demodata/511145.protein.links.full.v11.5.txt --percentile_top 90 --percentile_bot 1 --threshold_ppi 850```
 
 This command reads 3 input files, where the genes coming from E.coli (511145) are ranked based on their Wyatt Clark information content (```WyattClarkIC-perprotein.tsv```). ```--percentile_top 90``` indicates that the genes at the top 10% with respect to Wyatt Clark infromation content are taken,
 ```--percentile_bot 1``` takes the bottom 1% annotated genes based on Wyatt Clark information content (those are the ignorome genes), and ```--threshold_ppi 850``` chooses STRING coexpression score (```511145.protein.links.full.v11.5.txt```) of 850 and above. The protein alias file (```511145.protein.aliases.v11.5.txt```) makes sure that protein names from different databases have their IDs mapped properly to STRING interaction network.
 
 #### Input: GO annotation file of E.coli, from [GO Consortium](http://release.geneontology.org/):
-```$ ignoromenot -i demodata/goa_human27Jul22Filtered.gaf -id demodata/9606.protein.aliases.v11.5.txt -ppi demodata/9606.protein.links.full.v11.5.txt -m ct -a MFO -ptop 90 -pbot 1 -pppi 98```
+```$ ignoromenot -i demodata/goa_eco27Jul22Filtered.gaf -id demodata/511145.protein.aliases.v11.5.txt -ppi demodata/511145.protein.links.full.v11.5.txt -m ct -a MFO -ptop 90 -pbot 1 -pppi 98```
 
 
 ### Output

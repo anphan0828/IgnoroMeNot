@@ -25,6 +25,7 @@ import pandas as pd
 from dateutil import parser
 import debias_supp as debias
 import pickle as cp
+import time
 
 # Global variables
 verbose = 0
@@ -177,7 +178,7 @@ def filter_most_annotated(ranktable, ttop, ptop):
         if row[1] >= threshold:
             most_annt_list.append(row[0])
     print()
-    print("Absolute threshold for most annotated genes:", threshold)
+    print("Upper absolute threshold for " + str(allrank.columns.values[1]) +":", threshold)
     return most_annt_list
 
 
@@ -201,7 +202,7 @@ def filter_least_annotated(ranktable, tbot, pbot):
     for index, row in allrank.iterrows():  # another loop if >1 metric
         if row[1] <= threshold:
             least_annt_list.append(row[0])
-    print("Absolute threshold for least annotated genes:", threshold)
+    print("Lower absolute threshold for " + str(allrank.columns.values[1]) +":", threshold)
     return least_annt_list
 
 
@@ -235,20 +236,23 @@ def associated_ignorome(all_ppi, tppi, pppi, most, least, idtable, ranktable):
     # Get ignorome genes: have low knowledge/interest but interact strongly with high knowledge/interest genes
     most_least = coexp[coexp['protein1'].isin(string_most) & coexp['protein2'].isin(string_least)].\
         sort_values(by='coexpression', ascending=False)
+    # print(most_least)
     known_set = set(most_least.iloc[:, 0].tolist())
     ignorome_set = set(most_least.iloc[:, 1].tolist())
     ignorome_common = []
     for ignorome in ignorome_set:
         common = idmapping.loc[idmapping['string_id']==ignorome, 'alias']
-        ignorome_common.append(common)
+        ignorome_common.append((common.tolist()))
     # print("\nStrongest most-least annotated pairs:\n", most_least.head(10))
 
     # Print results with STRING ids, information value
     ignorome_table = idmapping[idmapping['string_id'].isin(ignorome_set)]
     known_table = idmapping[idmapping['string_id'].isin(known_set)]
-    print("\nTotal ignorome found:", len(ignorome_common), ignorome_common)
+    print("\nTotal ignorome found:", len(ignorome_common))
+    print((ignorome_common))
     print(ignorome_table)
-    ignorome_table.to_csv('./Ignorome_Genes_' + str(datetime.datetime.now) + '.tsv', sep="\t", header=True)
+    now = datetime.datetime.now
+    ignorome_table.to_csv('./Ignorome_Genes_' + time.strftime(r"%Y-%m-%d-%H-%M-%S",time.localtime()) + '.tsv', sep="\t", header=True)
     return threshold, ignorome_set, known_set
 
 
@@ -308,7 +312,7 @@ def get_network_api(calculated_threshold, gene_all_common, species):
         l = line.strip().split("\t")
         p1, p2 = l[0], l[1]  # protein preferred name
         # filter the interaction according to coexpression score (l[9])
-        coexpression_score = float(l[10])
+        coexpression_score = float(l[9])
         if coexpression_score > float(calculated_threshold)/1000:
             # print
             print("\t".join([p1, p2, "coexpression (score. %.3f)" % coexpression_score]))
