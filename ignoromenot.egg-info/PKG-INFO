@@ -36,37 +36,58 @@ Additionally, a STRING interaction network and a protein alias file of the organ
 
 ## IgnoroMeNot usage:
 ```
-usage: ignoromenot.py [-h] --ranktable RANKTABLE --idtable IDTABLE --stringppi STRINGPPI
+usage: ignoromenot.py [-h] --ranktable RANKTABLE --idtable IDTABLE --stringppi
+                      STRINGPPI
                       [--threshold_top THRESHOLD_TOP | --percentile_top PERCENTILE_TOP]
                       [--threshold_bot THRESHOLD_BOT | --percentile_bot PERCENTILE_BOT]
-                      [--threshold_ppi THRESHOLD_PPI | --percentile_ppi PERCENTILE_PPI] 
+                      [--threshold_ppi THRESHOLD_PPI | --percentile_ppi PERCENTILE_PPI]
 
-Optional arguments:
--h, --help                  Show this help message and exit
--ttop, --threshold_top      Set an absolute upper threshold for most annotated genes based on the given metric. 
-                            Default to 100
--ptop, --percentile_top     Set a relative upper threshold for most annotated genes at k-th percentile based on the given metric. 
-                            Cannot be provided simultaneously with --threshold_top
--tbot, --threshold_bot      Set an absolute lower threshold for least annotated genes based on the given metric. 
-                            Default to 5
--pbot, --percentile_bot     Set a relative lower threshold for least annotated genes at k-th percentile based on the given metric. 
-                            Cannot be provided simultaneously with --threshold_bot
--tppi, --threshold_ppi      Set an absolute upper threshold for STRING protein-protein interaction score. 
-                            Default to 500
--pppi, --percentile_ppi     Set a relative upper threshold for STRING protein-protein interaction score.
-                            Cannot be provided simultaneously with --threshold_ppi
-                            
+IgnoroMeNot find ignorome genes
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --threshold_top THRESHOLD_TOP, -ttop THRESHOLD_TOP
+                        Set an absolute upper threshold for most annotated genes based
+                        on the given metric. Default to 100
+  --percentile_top PERCENTILE_TOP, -ptop PERCENTILE_TOP
+                        Set a relative upper threshold for most annotated genes at
+                        k-th percentile based on the given metric. Cannot be provided
+                        simultaneously with --threshold_top.Example: -ptop 95 selects
+                        top 5% of genes with highest value
+  --threshold_bot THRESHOLD_BOT, -tbot THRESHOLD_BOT
+                        Set an absolute lower threshold for least annotated genes
+                        based on the given metric. Default to 5
+  --percentile_bot PERCENTILE_BOT, -pbot PERCENTILE_BOT
+                        Set a relative lower threshold for least annotated genes at
+                        k-th percentile based on the given metric. Cannot be provided
+                        simultaneously with --threshold_bot.Example: -pbot 10 selects
+                        top 10% of genes with lowest value
+  --threshold_ppi THRESHOLD_PPI, -tppi THRESHOLD_PPI
+                        Set an absolute upper threshold for STRING protein-protein
+                        interaction score. Default to 500
+  --percentile_ppi PERCENTILE_PPI, -pppi PERCENTILE_PPI
+                        Set a relative upper threshold for STRING protein-protein
+                        interaction score. Cannot be provided simultaneously with
+                        --threshold_ppi.Example: -pppi 95 selects top 5% of associated
+                        pairs with highest score
+
 Required arguments:
--rank, --ranktable          The path to a tab-separated file of a list of genes with any single annotation metric (see above sample rank table)
--id, --idtable              The path to a STRING protein alias file of the organism being examined. 
-                            The filename must start with the organism ID (e.g., 9606 for human, 511145 for E.coli)
--ppi, --stringppi           The path to a STRING interaction network of the organism being examined.
-                            The filename must start with the organism ID (e.g., 9606 for human, 511145 for E.coli)
+  --ranktable RANKTABLE, -rank RANKTABLE
+                        The path to a tab-separated file of a list of genes with any
+                        single annotation metric (see above sample rank table)
+  --idtable IDTABLE, -id IDTABLE
+                        The path to a STRING protein alias file of the organism being
+                        examined. The filename must start with the organism ID (e.g.,
+                        9606 for human, 511145 for E.coli)
+  --stringppi STRINGPPI, -ppi STRINGPPI
+                        The path to a STRING interaction network of the organism being
+                        examined. The filename must start with the organism ID (e.g.,
+                        9606 for human, 511145 for E.coli)
 ```
 ### Example usage:
 Demo data of E.coli are included in the GitHub repository.
 
-``$ python3 src/ignoromenot/ignoromenot.py --ranktable demodata/WyattClarkIC-perprotein.tsv --idtable demodata/511145.protein.aliases.v11.5.txt --stringppi demodata/511145.protein.links.full.v11.5.txt --percentile_top 90 --percentile_bot 1 --threshold_ppi 850``
+``$ ignoromenot --ranktable demodata/WyattClarkIC-perprotein.tsv --idtable demodata/511145.protein.aliases.v11.5.txt --stringppi demodata/511145.protein.links.full.v11.5.txt --percentile_top 90 --percentile_bot 1 --threshold_ppi 850``
 
 This command reads 3 input files, where the genes coming from E.coli (511145) are ranked based on their Wyatt Clark information content (``WyattClarkIC-perprotein.tsv``). ``--percentile_top 90`` indicates that the genes at the top 10% with respect to Wyatt Clark infromation content are taken,
 ``--percentile_bot 1`` takes the bottom 1% annotated genes based on Wyatt Clark information content (those are the ignorome genes), and ``--threshold_ppi 850`` chooses STRING coexpression score (``511145.protein.links.full.v11.5.txt``) of 850 and above. The protein alias file (``511145.protein.aliases.v11.5.txt``) makes sure that protein names from different databases have their IDs mapped properly to STRING interaction network.
