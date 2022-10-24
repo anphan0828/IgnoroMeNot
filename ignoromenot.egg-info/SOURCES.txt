@@ -15,5 +15,7 @@ ignoromenot.egg-info/dependency_links.txt
 ignoromenot.egg-info/entry_points.txt
 ignoromenot.egg-info/requires.txt
 ignoromenot.egg-info/top_level.txt
+ignoromenot/__pycache__/__init__.cpython-310.pyc
 ignoromenot/__pycache__/__init__.cpython-38.pyc
+ignoromenot/__pycache__/ignoromenot.cpython-310.pyc
 ignoromenot/__pycache__/ignoromenot.cpython-38.pyc
