@@ -205,10 +205,10 @@ def convertToDictionary(filename):
 #         counter += 1
 #     return data
 
-def convertFromGAFToRequiredFormat(gaf):  # newly rewritten Sep 14
+def convertFromGAFToRequiredFormat(gaf):  # newly rewritten Sep 14, newly added NOT removal Oct 19
     """
     This function takes the data input which is created by gaf iterator and then makes few changes
-    in the annotations which is relevant to this program.
+    in the annotations which is relevant to this program. Removing NOT annotations
     """
     alt_id_to_id_map = cp.load(open(FILE_ALTERNATE_ID_TO_ID_MAPPING, "rb"))
     #print(alt_id_to_id_map)
@@ -999,32 +999,32 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, go
     # print(originalData)
 
     for new_keys in discarded_data.keys():
-        if discarded_data[new_keys]['DB_Object_Symbol'] in discardedDict:
-            discardedDict[discarded_data[new_keys]['DB_Object_Symbol']][0] = discardedDict[
+        if discarded_data[new_keys]['DB_Object_ID'] in discardedDict:
+            discardedDict[discarded_data[new_keys]['DB_Object_ID']][0] = discardedDict[
                                                                                  discarded_data[new_keys][
-                                                                                     'DB_Object_Symbol']][0] + 1
+                                                                                     'DB_Object_ID']][0] + 1
             if discarded_data[new_keys]['Aspect'] == "F":
-                discardedDict[discarded_data[new_keys]['DB_Object_Symbol']][1] = \
-                    discardedDict[discarded_data[new_keys]['DB_Object_Symbol']][1] + 1
+                discardedDict[discarded_data[new_keys]['DB_Object_ID']][1] = \
+                    discardedDict[discarded_data[new_keys]['DB_Object_ID']][1] + 1
             elif discarded_data[new_keys]['Aspect'] == "P":
-                discardedDict[discarded_data[new_keys]['DB_Object_Symbol']][2] = \
-                    discardedDict[discarded_data[new_keys]['DB_Object_Symbol']][2] + 1
+                discardedDict[discarded_data[new_keys]['DB_Object_ID']][2] = \
+                    discardedDict[discarded_data[new_keys]['DB_Object_ID']][2] + 1
             elif discarded_data[new_keys]['Aspect'] == "C":
-                discardedDict[discarded_data[new_keys]['DB_Object_Symbol']][3] = \
-                    discardedDict[discarded_data[new_keys]['DB_Object_Symbol']][3] + 1
+                discardedDict[discarded_data[new_keys]['DB_Object_ID']][3] = \
+                    discardedDict[discarded_data[new_keys]['DB_Object_ID']][3] + 1
             # print("yes")
         else:
-            discardedDict[discarded_data[new_keys]['DB_Object_Symbol']] = [1, 0, 0, 0]
+            discardedDict[discarded_data[new_keys]['DB_Object_ID']] = [1, 0, 0, 0]
             if discarded_data[new_keys]['Aspect'] == "F":
-                discardedDict[discarded_data[new_keys]['DB_Object_Symbol']][1] = \
-                    discardedDict[discarded_data[new_keys]['DB_Object_Symbol']][1] + 1
+                discardedDict[discarded_data[new_keys]['DB_Object_ID']][1] = \
+                    discardedDict[discarded_data[new_keys]['DB_Object_ID']][1] + 1
             elif discarded_data[new_keys]['Aspect'] == "P":
-                discardedDict[discarded_data[new_keys]['DB_Object_Symbol']][2] = \
-                    discardedDict[discarded_data[new_keys]['DB_Object_Symbol']][2] + 1
+                discardedDict[discarded_data[new_keys]['DB_Object_ID']][2] = \
+                    discardedDict[discarded_data[new_keys]['DB_Object_ID']][2] + 1
             elif discarded_data[new_keys]['Aspect'] == "C":
-                discardedDict[discarded_data[new_keys]['DB_Object_Symbol']][3] = \
-                    discardedDict[discarded_data[new_keys]['DB_Object_Symbol']][3] + 1
-        # print(discarded_data[new_keys]['DB_Object_Symbol']+"\t"+str(discardedDict[discarded_data[new_keys]['DB_Object_Symbol']]))
+                discardedDict[discarded_data[new_keys]['DB_Object_ID']][3] = \
+                    discardedDict[discarded_data[new_keys]['DB_Object_ID']][3] + 1
+        # print(discarded_data[new_keys]['DB_Object_ID']+"\t"+str(discardedDict[discarded_data[new_keys]['DB_Object_ID']]))
 
     discFH1 = open("HTPProteins_New.tsv", "w")
     for i in discardedDict:
@@ -1036,64 +1036,64 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, go
         # print(keys)
 
         if keys not in data.keys():
-            # print(originalData[keys]['DB_Object_Symbol']+"\t"+originalData[keys]['GO_ID'])
+            # print(originalData[keys]['DB_Object_ID']+"\t"+originalData[keys]['GO_ID'])
             removedProt += 1
-            completelyRemoved.append(originalData[keys]['DB_Object_Symbol'])
+            completelyRemoved.append(originalData[keys]['DB_Object_ID'])
         else:
-            if data[keys]['DB_Object_Symbol'] in debiasedDict:
-                debiasedDict[data[keys]['DB_Object_Symbol']][0] = \
-                    debiasedDict[data[keys]['DB_Object_Symbol']][0] + 1
+            if data[keys]['DB_Object_ID'] in debiasedDict:
+                debiasedDict[data[keys]['DB_Object_ID']][0] = \
+                    debiasedDict[data[keys]['DB_Object_ID']][0] + 1
                 if data[keys]['Aspect'] == "F":
-                    debiasedDict[data[keys]['DB_Object_Symbol']][1] = \
-                        debiasedDict[data[keys]['DB_Object_Symbol']][1] + 1
+                    debiasedDict[data[keys]['DB_Object_ID']][1] = \
+                        debiasedDict[data[keys]['DB_Object_ID']][1] + 1
                 elif data[keys]['Aspect'] == "P":
-                    debiasedDict[data[keys]['DB_Object_Symbol']][2] = \
-                        debiasedDict[data[keys]['DB_Object_Symbol']][2] + 1
+                    debiasedDict[data[keys]['DB_Object_ID']][2] = \
+                        debiasedDict[data[keys]['DB_Object_ID']][2] + 1
                 elif data[keys]['Aspect'] == "C":
-                    debiasedDict[data[keys]['DB_Object_Symbol']][3] = \
-                        debiasedDict[data[keys]['DB_Object_Symbol']][3] + 1
+                    debiasedDict[data[keys]['DB_Object_ID']][3] = \
+                        debiasedDict[data[keys]['DB_Object_ID']][3] + 1
             else:
-                debiasedDict[data[keys]['DB_Object_Symbol']] = [1, 0, 0, 0]
+                debiasedDict[data[keys]['DB_Object_ID']] = [1, 0, 0, 0]
                 if data[keys]['Aspect'] == "F":
-                    debiasedDict[data[keys]['DB_Object_Symbol']][1] = \
-                        debiasedDict[data[keys]['DB_Object_Symbol']][1] + 1
+                    debiasedDict[data[keys]['DB_Object_ID']][1] = \
+                        debiasedDict[data[keys]['DB_Object_ID']][1] + 1
                 elif data[keys]['Aspect'] == "P":
-                    debiasedDict[data[keys]['DB_Object_Symbol']][2] = \
-                        debiasedDict[data[keys]['DB_Object_Symbol']][2] + 1
+                    debiasedDict[data[keys]['DB_Object_ID']][2] = \
+                        debiasedDict[data[keys]['DB_Object_ID']][2] + 1
                 elif data[keys]['Aspect'] == "C":
-                    debiasedDict[data[keys]['DB_Object_Symbol']][3] = \
-                        debiasedDict[data[keys]['DB_Object_Symbol']][3] + 1
+                    debiasedDict[data[keys]['DB_Object_ID']][3] = \
+                        debiasedDict[data[keys]['DB_Object_ID']][3] + 1
 
-            if data[keys]['DB_Object_Symbol'] in newproteinDict:
-                newproteinDict[data[keys]['DB_Object_Symbol']] = newproteinDict[data[keys]['DB_Object_Symbol']] + 1
+            if data[keys]['DB_Object_ID'] in newproteinDict:
+                newproteinDict[data[keys]['DB_Object_ID']] = newproteinDict[data[keys]['DB_Object_ID']] + 1
                 # print("yes")
             else:
-                newproteinDict[data[keys]['DB_Object_Symbol']] = 1
-        if originalData[keys]['DB_Object_Symbol'] in proteinDict:
-            proteinDict[originalData[keys]['DB_Object_Symbol']][0] = \
-                proteinDict[originalData[keys]['DB_Object_Symbol']][0] + 1
+                newproteinDict[data[keys]['DB_Object_ID']] = 1
+        if originalData[keys]['DB_Object_ID'] in proteinDict:
+            proteinDict[originalData[keys]['DB_Object_ID']][0] = \
+                proteinDict[originalData[keys]['DB_Object_ID']][0] + 1
             if originalData[keys]['Aspect'] == "F":
-                proteinDict[originalData[keys]['DB_Object_Symbol']][1] = \
-                    proteinDict[originalData[keys]['DB_Object_Symbol']][1] + 1
+                proteinDict[originalData[keys]['DB_Object_ID']][1] = \
+                    proteinDict[originalData[keys]['DB_Object_ID']][1] + 1
             elif originalData[keys]['Aspect'] == "P":
-                proteinDict[originalData[keys]['DB_Object_Symbol']][2] = \
-                    proteinDict[originalData[keys]['DB_Object_Symbol']][2] + 1
+                proteinDict[originalData[keys]['DB_Object_ID']][2] = \
+                    proteinDict[originalData[keys]['DB_Object_ID']][2] + 1
             elif originalData[keys]['Aspect'] == "C":
-                proteinDict[originalData[keys]['DB_Object_Symbol']][3] = \
-                    proteinDict[originalData[keys]['DB_Object_Symbol']][3] + 1
+                proteinDict[originalData[keys]['DB_Object_ID']][3] = \
+                    proteinDict[originalData[keys]['DB_Object_ID']][3] + 1
             # print("yes")
         else:
-            proteinDict[originalData[keys]['DB_Object_Symbol']] = [1, 0, 0, 0]
+            proteinDict[originalData[keys]['DB_Object_ID']] = [1, 0, 0, 0]
             if originalData[keys]['Aspect'] == "F":
-                proteinDict[originalData[keys]['DB_Object_Symbol']][1] = \
-                    proteinDict[originalData[keys]['DB_Object_Symbol']][1] + 1
+                proteinDict[originalData[keys]['DB_Object_ID']][1] = \
+                    proteinDict[originalData[keys]['DB_Object_ID']][1] + 1
             elif originalData[keys]['Aspect'] == "P":
-                proteinDict[originalData[keys]['DB_Object_Symbol']][2] = \
-                    proteinDict[originalData[keys]['DB_Object_Symbol']][2] + 1
+                proteinDict[originalData[keys]['DB_Object_ID']][2] = \
+                    proteinDict[originalData[keys]['DB_Object_ID']][2] + 1
             elif originalData[keys]['Aspect'] == "C":
-                proteinDict[originalData[keys]['DB_Object_Symbol']][3] = \
-                    proteinDict[originalData[keys]['DB_Object_Symbol']][3] + 1
-            # print(proteinDict[originalData[keys]['DB_Object_Symbol']])
+                proteinDict[originalData[keys]['DB_Object_ID']][3] = \
+                    proteinDict[originalData[keys]['DB_Object_ID']][3] + 1
+            # print(proteinDict[originalData[keys]['DB_Object_ID']])
     partialCounter = 0
     compRemoved = 0
     print("Removed annotations " + str(removedProt))
@@ -1272,10 +1272,10 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, go
     prot_go_dict = {}
     ic_dict = {}
     for keys in originalData:
-        if originalData[keys]['DB_Object_Symbol'] in prot_go_dict:
-            prot_go_dict[originalData[keys]['DB_Object_Symbol']].append(originalData[keys]['GO_ID'])
+        if originalData[keys]['DB_Object_ID'] in prot_go_dict:
+            prot_go_dict[originalData[keys]['DB_Object_ID']].append(originalData[keys]['GO_ID'])
         else:
-            prot_go_dict[originalData[keys]['DB_Object_Symbol']] = [originalData[keys]['GO_ID']]
+            prot_go_dict[originalData[keys]['DB_Object_ID']] = [originalData[keys]['GO_ID']]
 
     # Print Phillip Lord IC to file "AllProteins_IC.tsv"
     for i in prot_go_dict:
@@ -1327,53 +1327,72 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, go
 
     # Print Wyatt Clark information accretion to file "AllProteins_IA.tsv, tab-separated not dict format
     bfhi = open("AllProteins_IA.tsv", "w")
+    sfhi = open("AllProteins_SE.tsv","w")
     ia_dict = {}
+    se_dict = {}
 
     for i in prot_go_dict:
         # fhi.write(str(i) + "\t" + str(prot_go_dict[i]) + "\t" + str(set(prot_go_dict[i])) + "\t")   # with IC
         bfhi.write(str(i) + "\t")
+        sfhi.write(str(i) + "\t")
         prot_go_dict[i] = set(prot_go_dict[i]) # Remove for with IC stuff
         # print(i, prot_go_dict[i])
         mfo_ic = 0
         bpo_ic = 0
         cco_ic = 0
+        mfo_se = 0
+        bpo_se = 0
+        cco_se = 0
 
         all_j = []
         all_j_ic = 0
+        all_j_se = 0
         for j in prot_go_dict[i]:
             if j in go_to_ia_dict_f.keys():
                 # print(go_to_ia_dict_f[j])
                 all_j.append(j)
                 all_j_ic += go_to_ia_dict_f[j]
+                all_j_se += go_to_ia_dict_f[j]*math.pow(2, -float(go_to_ia_dict_f[j]))
         mfo_ic = all_j_ic
+        mfo_se = all_j_se
         # fhi.write(str(all_j) + "\t" + str(all_j_ic) + "\t") # with IC
         ## fhi.write(str(all_j) + "\t" + str(all_j_ic) + "\t")
 
         all_j = []
         all_j_ic = 0
+        all_j_se = 0
         for j in prot_go_dict[i]:
             if j in go_to_ia_dict_p.keys():
                 # print(go_to_ia_dict_p[j])
                 all_j.append(j)
                 all_j_ic += go_to_ia_dict_p[j]
+                all_j_se += go_to_ia_dict_p[j] * math.pow(2, -float(go_to_ia_dict_p[j]))
         bpo_ic = all_j_ic
+        bpo_se = all_j_se
         # fhi.write(str(all_j) + "\t" + str(all_j_ic) + "\t") # with IC
         ## fhi.write(str(all_j) + "\t" + str(all_j_ic) + "\t")
 
         all_j = []
         all_j_ic = 0
+        all_j_se = 0
         for j in prot_go_dict[i]:
             if j in go_to_ia_dict_c.keys():
                 # print(go_to_ia_dict_c[j])
                 all_j.append(j)
                 all_j_ic += go_to_ia_dict_c[j]
+                all_j_se += go_to_ia_dict_c[j] * math.pow(2, -float(go_to_ia_dict_c[j]))
         cco_ic = all_j_ic
+        cco_se = all_j_se
         # fhi.write(str(all_j) + "\t" + str(all_j_ic) + "\n") # with IC
         bfhi.write(
             "[" + str(mfo_ic + bpo_ic + cco_ic) + ", " + str(mfo_ic) + ", " + str(bpo_ic) + ", " + str(cco_ic) + "]\n")
         ia_dict[i] =[(mfo_ic + bpo_ic + cco_ic),(mfo_ic), (bpo_ic), (cco_ic)]
+        sfhi.write(
+            "[" + str(mfo_se + bpo_se + cco_se) + ", " + str(mfo_se) + ", " + str(bpo_se) + ", " + str(cco_se) + "]\n")
+        se_dict[i] = [(mfo_se + bpo_se + cco_se), (mfo_se), (bpo_se), (cco_se)]
     # fhi.close()
     bfhi.close()
+    sfhi.close()
 
     ##############################################################################################################
 
@@ -1461,10 +1480,10 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, go
 
     prot_go_dict = {}
     for keys in data:
-        if data[keys]['DB_Object_Symbol'] in prot_go_dict:
-            prot_go_dict[data[keys]['DB_Object_Symbol']].append(data[keys]['GO_ID'])
+        if data[keys]['DB_Object_ID'] in prot_go_dict:
+            prot_go_dict[data[keys]['DB_Object_ID']].append(data[keys]['GO_ID'])
         else:
-            prot_go_dict[data[keys]['DB_Object_Symbol']] = [data[keys]['GO_ID']]
+            prot_go_dict[data[keys]['DB_Object_ID']] = [data[keys]['GO_ID']]
 
     for i in prot_go_dict:
         # fhi.write(str(i) + "\t" + str(prot_go_dict[i]) + "\t" + str(set(prot_go_dict[i])) + "\t") # For with IC stuff
@@ -1515,60 +1534,77 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, go
 
     # fhi = open("LTP_Proteins_With_IA.tsv", "w")
     bfhi = open("LTPProteins_IA.tsv", "w")
+    sfhi = open("LTPProteins_SE.tsv", "w")
     # fhi.write("Protein\tAnnotations\tAnnotation_Set\tMFO\tMFO_IC\tBPO\tBPO_IC\tCCO\tCCO_IC" + "\n")   # For with IC stuff
 
     prot_go_dict = {}
     for keys in data:
-        if data[keys]['DB_Object_Symbol'] in prot_go_dict:
-            prot_go_dict[data[keys]['DB_Object_Symbol']].append(data[keys]['GO_ID'])
+        if data[keys]['DB_Object_ID'] in prot_go_dict:
+            prot_go_dict[data[keys]['DB_Object_ID']].append(data[keys]['GO_ID'])
         else:
-            prot_go_dict[data[keys]['DB_Object_Symbol']] = [data[keys]['GO_ID']]
+            prot_go_dict[data[keys]['DB_Object_ID']] = [data[keys]['GO_ID']]
 
     for i in prot_go_dict:
         # fhi.write(str(i) + "\t" + str(prot_go_dict[i]) + "\t" + str(set(prot_go_dict[i])) + "\t") # For with IC stuff
         bfhi.write(str(i) + "\t")
+        sfhi.write(str(i) + "\t")
         prot_go_dict[i] = set(prot_go_dict[i])  # Remove for with IC
         # print(i, prot_go_dict[i])
         mfo_ic = 0
         bpo_ic = 0
         cco_ic = 0
+        mfo_se = 0
+        bpo_se = 0
+        cco_se = 0
 
         all_j = []
         all_j_ic = 0
+        all_j_se = 0
         for j in prot_go_dict[i]:
             if j in go_to_ia_dict_f.keys():
                 # print(go_to_ia_dict_f[j])
                 all_j.append(j)
                 all_j_ic += go_to_ia_dict_f[j]
+                all_j_se += go_to_ia_dict_f[j] * math.pow(2, -float(go_to_ia_dict_f[j]))
         mfo_ic = all_j_ic
+        mfo_se = all_j_se
         # fhi.write(str(all_j) + "\t" + str(all_j_ic) + "\t")   # For with IC stuff
         ## fhi.write(str(all_j) + "\t" + str(all_j_ic) + "\t")   # For without IC stuff
 
         all_j = []
         all_j_ic = 0
+        all_j_se = 0
         for j in prot_go_dict[i]:
             if j in go_to_ia_dict_p.keys():
                 # print(go_to_ic_dict_p[j])
                 all_j.append(j)
                 all_j_ic += go_to_ia_dict_p[j]
+                all_j_se += go_to_ia_dict_p[j] * math.pow(2, -float(go_to_ia_dict_p[j]))
         bpo_ic = all_j_ic
+        bpo_se = all_j_se
         # fhi.write(str(all_j) + "\t" + str(all_j_ic) + "\t")   # For with IC stuff
         ## fhi.write(str(all_j) + "\t" + str(all_j_ic) + "\t")   # For without IC stuff
 
         all_j = []
         all_j_ic = 0
+        all_j_se = 0
         for j in prot_go_dict[i]:
             if j in go_to_ia_dict_c.keys():
                 # print(go_to_ic_dict_c[j])
                 all_j.append(j)
                 all_j_ic += go_to_ia_dict_c[j]
+                all_j_se += go_to_ia_dict_c[j] * math.pow(2, -float(go_to_ia_dict_c[j]))
         cco_ic = all_j_ic
+        cco_se = all_j_se
         # fhi.write(str(all_j) + "\t" + str(all_j_ic) + "\n")   # For with IC stuff
         bfhi.write(
             "[" + str(mfo_ic + bpo_ic + cco_ic) + ", " + str(mfo_ic) + ", " + str(bpo_ic) + ", " + str(cco_ic) + "]\n")
+        sfhi.write(
+            "[" + str(mfo_se + bpo_se + cco_se) + ", " + str(mfo_se) + ", " + str(bpo_se) + ", " + str(cco_se) + "]\n")
 
     # fhi.close()
     bfhi.close()
+    sfhi.close()
 
     #########################################################################################################
 
@@ -1635,10 +1671,10 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, go
 
     prot_go_dict = {}
     for keys in discarded_data:
-        if discarded_data[keys]['DB_Object_Symbol'] in prot_go_dict:
-            prot_go_dict[discarded_data[keys]['DB_Object_Symbol']].append(discarded_data[keys]['GO_ID'])
+        if discarded_data[keys]['DB_Object_ID'] in prot_go_dict:
+            prot_go_dict[discarded_data[keys]['DB_Object_ID']].append(discarded_data[keys]['GO_ID'])
         else:
-            prot_go_dict[discarded_data[keys]['DB_Object_Symbol']] = [discarded_data[keys]['GO_ID']]
+            prot_go_dict[discarded_data[keys]['DB_Object_ID']] = [discarded_data[keys]['GO_ID']]
 
     for i in prot_go_dict:
         # fhi.write(str(i) + "\t" + str(prot_go_dict[i]) + "\t" + str(set(prot_go_dict[i])) + "\t") # With IC stuff
@@ -1690,60 +1726,77 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, go
 
     # fhi = open("HTP_Proteins_With_IC.tsv", "w")
     bfhi = open("HTPProteins_IA.tsv", "w")
+    sfhi = open("HTPProteins_SE.tsv", "w")
     # fhi.write("Protein\tAnnotations\tAnnotation_Set\tMFO\tMFO_IC\tBPO\tBPO_IC\tCCO\tCCO_IC" + "\n")   # With IC stuff
 
     prot_go_dict = {}
     for keys in discarded_data:
-        if discarded_data[keys]['DB_Object_Symbol'] in prot_go_dict:
-            prot_go_dict[discarded_data[keys]['DB_Object_Symbol']].append(discarded_data[keys]['GO_ID'])
+        if discarded_data[keys]['DB_Object_ID'] in prot_go_dict:
+            prot_go_dict[discarded_data[keys]['DB_Object_ID']].append(discarded_data[keys]['GO_ID'])
         else:
-            prot_go_dict[discarded_data[keys]['DB_Object_Symbol']] = [discarded_data[keys]['GO_ID']]
+            prot_go_dict[discarded_data[keys]['DB_Object_ID']] = [discarded_data[keys]['GO_ID']]
 
     for i in prot_go_dict:
         # fhi.write(str(i) + "\t" + str(prot_go_dict[i]) + "\t" + str(set(prot_go_dict[i])) + "\t") # With IC stuff
         bfhi.write(str(i) + "\t")
+        sfhi.write(str(i) + "\t")
         prot_go_dict[i] = set(prot_go_dict[i])  # removed for with IC
         # print(i, prot_go_dict[i])
         mfo_ic = 0
         bpo_ic = 0
         cco_ic = 0
+        mfo_se = 0
+        bpo_se = 0
+        cco_se = 0
 
         all_j = []
         all_j_ic = 0
+        all_j_se = 0
         for j in prot_go_dict[i]:
             if j in go_to_ia_dict_f.keys():
                 # print(go_to_ic_dict_f[j])
                 all_j.append(j)
                 all_j_ic += go_to_ia_dict_f[j]
+                all_j_se += go_to_ia_dict_f[j] * math.pow(2, -float(go_to_ia_dict_f[j]))
         mfo_ic = all_j_ic
+        mfo_se = all_j_se
         # fhi.write(str(all_j) + "\t" + str(all_j_ic) + "\t")   # With IC stuff
         ## fhi.write(str(all_j) + "\t" + str(all_j_ic) + "\t")   # Without IC stuff
 
         all_j = []
         all_j_ic = 0
+        all_j_se = 0
         for j in prot_go_dict[i]:
             if j in go_to_ia_dict_p.keys():
                 # print(go_to_ic_dict_p[j])
                 all_j.append(j)
                 all_j_ic += go_to_ia_dict_p[j]
+                all_j_se += go_to_ia_dict_p[j] * math.pow(2, -float(go_to_ia_dict_p[j]))
         bpo_ic = all_j_ic
+        bpo_se = all_j_se
         # fhi.write(str(all_j) + "\t" + str(all_j_ic) + "\t")   # With IC stuff
         ## fhi.write(str(all_j) + "\t" + str(all_j_ic) + "\t")   # Without IC stuff
 
         all_j = []
         all_j_ic = 0
+        all_j_se = 0
         for j in prot_go_dict[i]:
             if j in go_to_ia_dict_c.keys():
                 # print(go_to_ic_dict_c[j])
                 all_j.append(j)
                 all_j_ic += go_to_ia_dict_c[j]
+                all_j_se += go_to_ia_dict_c[j] * math.pow(2, -float(go_to_ia_dict_c[j]))
         cco_ic = all_j_ic
+        cco_se = all_j_se
         # fhi.write(str(all_j) + "\t" + str(all_j_ic) + "\n")   # With IC stuff
         bfhi.write(
             "[" + str(mfo_ic + bpo_ic + cco_ic) + ", " + str(mfo_ic) + ", " + str(bpo_ic) + ", " + str(cco_ic) + "]\n")
+        sfhi.write(
+            "[" + str(mfo_se + bpo_se + cco_se) + ", " + str(mfo_se) + ", " + str(bpo_se) + ", " + str(cco_se) + "]\n")
 
     # fhi.close()
     bfhi.close()
+    sfhi.close()
 
     """prev_val=[]
     for key in prev:
@@ -1768,7 +1821,7 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, go
     #     fhw = open(filepath[:-3] + ".txt", "w")
     #     fhw.write(str(new_prev_val) + "\n" + str(new_lat_val))
     # plt.close()
-    return proteinDict, ic_dict, ia_dict
+    return proteinDict, ic_dict, ia_dict, se_dict
 
 def freqGO_TERM(data):
     go_to_freq = dict()
@@ -1785,13 +1838,13 @@ def freqGO_TERM_Protein(data):
     go_count = dict()
     for annotation in data:
         # print(annotation)
-        if data[annotation]['DB_Object_Symbol'] in go_to_freq:
-            go_to_freq[data[annotation]['DB_Object_Symbol']].append(data[annotation]['GO_ID'])
-            go_count[data[annotation]['DB_Object_Symbol']] += 1
+        if data[annotation]['DB_Object_ID'] in go_to_freq:
+            go_to_freq[data[annotation]['DB_Object_ID']].append(data[annotation]['GO_ID'])
+            go_count[data[annotation]['DB_Object_ID']] += 1
         else:
-            # print(data[annotation]['DB_Object_Symbol'], data[annotation]['GO_ID'])
-            go_to_freq[data[annotation]['DB_Object_Symbol']] = [data[annotation]['GO_ID']]
-            go_count[data[annotation]['DB_Object_Symbol']] = 1
+            # print(data[annotation]['DB_Object_ID'], data[annotation]['GO_ID'])
+            go_to_freq[data[annotation]['DB_Object_ID']] = [data[annotation]['GO_ID']]
+            go_count[data[annotation]['DB_Object_ID']] = 1
     return go_to_freq, go_count
 
 

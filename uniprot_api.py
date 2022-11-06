@@ -186,13 +186,65 @@ def api_map_STRING_GeneName(ppi):
         mapping_dict = dict() # mapping_dict[<string_id>] = <UniProtKB_geneName>
         for entry in results['results']:
             try:
-                mapping_dict[entry['from']] = entry['to']['genes'][0]['geneName']['value']
+                    # mapping_dict[entry['from']] = entry['to']['genes'][0]['geneName']['value']
+                if entry['to']['entryType'] == 'UniProtKB unreviewed (TrEMBL)':
+                    mapping_dict[entry['from']] = entry['to']['primaryAccession'] # UniProtKB unreviewed ID, not in results['failedIds']
+                    print(mapping_dict[entry['from']], entry['to']['entryType'])
             except KeyError:
                 try:
                     mapping_dict[entry['from']] = entry['to']['genes'][0]['orderedLocusNames'][0]['value']
                 except KeyError:
                     continue
-    return mapping_dict
+    fh = open('/home/ahphan/RotationData/Friedberg/bar/unknown-strings.txt', "w")
+    fh2 = open('/home/ahphan/RotationData/Friedberg/bar/trembl-strings-names.txt', "w")
+    for string_id in mapping_dict.keys():
+        fh.write(string_id + "\n")
+        fh2.write(string_id+": "+ mapping_dict[string_id]+"\n")
+    fh.close
+    fh2.close
+    return mapping_dict, results
+
+
+def api_map_STRING_UniProt(ppi):
+    string_ids = ppi.iloc[:, 0].drop_duplicates().tolist() # STRING IDs messed up because UniProt API have missing fields
+    # On string-db.org, it points to different protein than when mapped with API
+    job_id = submit_id_mapping(from_db="STRING", to_db="UniProtKB", ids=string_ids)
+    if check_id_mapping_results_ready(job_id):
+        link = get_id_mapping_results_link(job_id)
+        results = get_id_mapping_results_search(link)
+        mapping_dict = dict() # mapping_dict[<string_id>] = <UniProtKB_ID>
+        mapping_dict_unre = dict()
+        for entry in results['results']:
+            try:
+                    # mapping_dict[entry['from']] = entry['to']['genes'][0]['geneName']['value']
+                if entry['to']['entryType'] == 'UniProtKB unreviewed (TrEMBL)':
+                    mapping_dict_unre[entry['from']] = entry['to']['primaryAccession'] # UniProtKB unreviewed ID, not in results['failedIds']
+                    print(mapping_dict_unre[entry['from']], entry['to']['entryType'])
+                else:
+                    mapping_dict[entry['from']] = entry['to']['primaryAccession']
+            except KeyError:
+                try:
+                    mapping_dict[entry['from']] = entry['to']['genes'][0]['orderedLocusNames'][0]['value']
+                except KeyError:
+                    continue
+    fh = open('unknown-strings.txt', "w")
+    fh2 = open('trembl-strings-names.txt', "w")
+    for string_id in mapping_dict_unre.keys():
+        fh.write(string_id + "\n")
+        fh2.write(string_id+":"+ mapping_dict_unre[string_id]+"\n")
+    fh.close
+    fh2.close
+    return mapping_dict, mapping_dict_unre
+
+# ppi = pd.read_csv('/home/ahphan/Downloads/9606.protein.links.coexp400.v11.5.txt', header=0,
+#                       delim_whitespace=True)
+# mapping_dict = api_map_STRING_GeneName(ppi)
+
+# mapping_table = pd.DataFrame.from_dict(mapping_dict, orient='index')
+# print(mapping_table.shape)
+# mapping_na = mapping_table[mapping_table.isna().any(axis=1)]
+# print(mapping_na.head())
+# print(mapping_na.shape)
 
     # Equivalently using the stream endpoint which is more demanding
     # on the API and so is less stable:

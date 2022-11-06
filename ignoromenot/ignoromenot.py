@@ -36,7 +36,7 @@ method = "interaction_partners"  # network or interaction_partners
 request_url = "/".join([STRING_API_URL, output_format, method])
 
 # Files needed for debias:
-DATADIR = "data_for_ignoromenot/" # TODO: run debias_prep instead of providing readily used files
+DATADIR = "data_for_ignoromenot/"
 # os.chdir('bar/')
 # Some filenames
 FILE_ALTERNATE_ID_TO_ID_MAPPING = DATADIR + "alt_to_id.graph"
@@ -173,7 +173,7 @@ def rank_gaf_file(gaf_input, metric, aspect, recal):
     data, goia_f, goia_p, goia_c = debias.calculateWyattClarkInformationContent(data, int(recal), 0, None, './', 0)
     new_data, discarded_data = debias.chooseProteinsBasedOnPublications(data, 100, None)
     later_go_term_freq = debias.freqGO_TERM(data)
-    ct_dict, ic_dict, ia_dict = debias.generateHistogram(data, data, discarded_data, 0, prev_go_term_freq,
+    ct_dict, ic_dict, ia_dict, se_dict = debias.generateHistogram(data, data, discarded_data, 0, prev_go_term_freq,
                       later_go_term_freq, goia_f, goia_p, goia_c)
     # metric_list = metric
     # aspect_list = aspect
@@ -183,6 +183,8 @@ def rank_gaf_file(gaf_input, metric, aspect, recal):
         ranktable = pd.DataFrame.from_dict(ic_dict,orient='index')
     elif metric == "ia":
         ranktable = pd.DataFrame.from_dict(ia_dict,orient='index')
+    elif metric == "se":
+        ranktable = pd.DataFrame.from_dict(se_dict,orient='index')
     else:
         print("Please provide a valid metric that can be calculated from GAF: ct, ic, or ia")
         exit()
@@ -190,17 +192,21 @@ def rank_gaf_file(gaf_input, metric, aspect, recal):
     ranktable.reset_index(inplace=True)
     ranktable=ranktable.rename(columns={"index":"Genes"})
     if aspect == "All":
-        ranktable=ranktable.iloc[0,[0,1]]
+        ranktable=ranktable.iloc[:,[0,1]]
+        ranktable_supp=ranktable
     elif aspect == "MFO":
+        ranktable_supp = ranktable.iloc[:, [0, 3]]
         ranktable=ranktable.iloc[:,[0,2]]
     elif aspect == "BPO":
+        ranktable_supp = ranktable.iloc[:, [0, 2]]
         ranktable=ranktable.iloc[:,[0,3]]
     elif aspect == "CCO":
         ranktable=ranktable.iloc[:,[0,4]]
+        ranktable_supp=ranktable
     else:
         print("Error in aspect code. Please choose one of the following: All, MFO, BPO, CCO")
         exit()
-    return ranktable
+    return ranktable, ranktable_supp
 
 
 def filter_most_annotated(ranktable, ttop, ptop):
@@ -211,7 +217,7 @@ def filter_most_annotated(ranktable, ttop, ptop):
     :param ptop: percentile threshold
     :return: list of top genes
     """
-    # allrank = pd.read_csv(ranktable, sep="\t", header=0) # TODO: parse ranktable here, categorize from main with options.input
+    # allrank = pd.read_csv(ranktable, sep="\t", header=0)
     allrank = ranktable
     most_annt_list = []
 
@@ -228,7 +234,7 @@ def filter_most_annotated(ranktable, ttop, ptop):
     return most_annt_list
 
 
-def filter_least_annotated(ranktable, tbot, pbot):
+def filter_least_annotated(ranktable, ranktable_supp, tbot, pbot):
     """
     This function filters least annotated genes based on threshold
     :param ranktable: tab-separated gene list with one or more metrics
@@ -238,7 +244,15 @@ def filter_least_annotated(ranktable, tbot, pbot):
     """
     # allrank = pd.read_csv(ranktable, sep="\t", header=0)
     allrank = ranktable
+    threshold_supp = np.percentile(ranktable_supp.iloc[:,1], float(75))
+    # the lower percentile, the more genes are considered not poor in supplemental aspect
+    # smaller ignorome genes result
+    most_supp = []
+    for index, row in ranktable_supp.iterrows():
+        if row[1] >= threshold_supp:
+            most_supp.append(row[0])
     least_annt_list = []
+    not_least_annt_list = []
 
     # Get threshold and filter for each metric
     if pbot is not None:
@@ -247,8 +261,16 @@ def filter_least_annotated(ranktable, tbot, pbot):
         threshold = float(tbot)
     for index, row in allrank.iterrows():  # another loop if >1 metric
         if row[1] <= threshold:
-            least_annt_list.append(row[0])
+            if row[0] not in most_supp:
+                least_annt_list.append(row[0])
+            else:
+                # print(row[0], row[1])
+                not_least_annt_list.append(row[0])
     print("Lower absolute threshold for " + str(allrank.columns.values[1]) +":", threshold)
+    print("Supplemental aspect: ", ranktable_supp.columns.values[1])
+    print("Supplemental aspect threshold: ", float(threshold_supp), "and supplemental aspect max: ",
+          max(ranktable_supp.iloc[:, 1]))
+    print("Genes are rich in supplemental aspect not considered for less annotated: ", len(not_least_annt_list))
     return least_annt_list
 
 
@@ -312,15 +334,19 @@ def associated_ignorome2(all_ppi, tppi, pppi, most, least, ranktable):
 
     # Filter most coexpressed pairs
     coexp = all_ppi.loc[all_ppi.coexpression > threshold, ['protein1', 'protein2', 'coexpression']]
+    coexp200 = all_ppi.loc[all_ppi.coexpression > 200,['protein1', 'protein2', 'coexpression']]
+
     try:
         mapping_dict = cp.load(open("data/temp/mapping_dict.txt", "rb"))
+        mapping_dict_unre = cp.load(open("data/temp/mapping_dict_unre.txt", "rb"))
         print("\nRetrieving ID from saved data")
     except IOError as e:
         print("\nMapping ID with UniProt:")
-        mapping_dict = uniprot.api_map_STRING_GeneName(all_ppi)
+        mapping_dict, mapping_dict_unre = uniprot.api_map_STRING_UniProt(all_ppi) # STRING to UniProtKB
     if os.path.isdir("data/temp/") == False:
         os.makedirs("data/temp/")
     cp.dump(mapping_dict, open("data/temp/mapping_dict.txt", "wb"))
+    cp.dump(mapping_dict_unre, open("data/temp/mapping_dict_unre.txt", "wb"))
 
     string_most , id_rank, na_idrank = common_to_string2(mapping_dict, ranktable, most)
     # print("Top IC genes: ", string_most)
@@ -332,17 +358,19 @@ def associated_ignorome2(all_ppi, tppi, pppi, most, least, ranktable):
     # Get ignorome genes: have low knowledge/interest but interact strongly with high knowledge/interest genes
     most_least = coexp[coexp['protein1'].isin(string_most) & coexp['protein2'].isin(string_least)]. \
         sort_values(by='protein2', ascending=True)
+    # TODO: rich in F or P, poor must be poor across F-P-C
     # print(most_least)
     known_set = set(most_least.iloc[:, 0].tolist())
     ignorome_set = set(most_least.iloc[:, 1].tolist())
     ignorome_common = []
-    coexp_top_common = []
+    coexp_top_common = dict()
     for ignorome in ignorome_set:
         coexp_top = []
         for known in most_least[most_least['protein2'] == ignorome].loc[:,'protein1'].tolist():  # only print strongest association and over threshold top genes
             common = id_rank[id_rank['string_id'] == known].loc[:,'protein_name'].tolist()
             coexp_top.extend(common)
-        coexp_top_common.append(coexp_top)
+        coexp_top_common[ignorome] = tuple(coexp_top)
+        # print("Key: " + ignorome, "Value: " + str(coexp_top_common[ignorome]))
         common = id_rank.loc[id_rank['string_id'] == ignorome, 'protein_name']
         ignorome_common.append((common.tolist()))
     # print("\nStrongest most-least annotated pairs:\n", most_least.head(10))
@@ -350,11 +378,44 @@ def associated_ignorome2(all_ppi, tppi, pppi, most, least, ranktable):
     # Print results with STRING ids, information value
     ignorome_table = id_rank[id_rank['string_id'].isin(ignorome_set)].sort_values(by='string_id', ascending=True)
     known_table = id_rank[id_rank['string_id'].isin(known_set)]
-    ignorome_table['coexpressed_with'] = coexp_top_common
+    ignorome_table['coexpressed_with'] = ignorome_table['string_id'].map(coexp_top_common)
     print("\nIgnorome proteins found:", len(ignorome_common))
-    print((ignorome_common))
+    print(ignorome_common)
+    s = ignorome_table.coexpressed_with.str.len().sort_values(ascending=False).index
+    ignorome_table = ignorome_table.reindex(s)
     print(ignorome_table.to_csv(sep = '\t', index=False))
-    return threshold, ignorome_set, known_set, ignorome_table
+
+    # Use mapping_dict_unre to find strongest coexp links between unreviewed and most annotated
+    unre_set = set(mapping_dict_unre.keys())
+    unre_common = []
+    unre_coexp_top_common = dict()
+    for unre in unre_set:
+        coexp_top = []
+        for known in coexp200[coexp200['protein2'] == unre].loc[:,'protein1'].tolist():  # only print strongest association and over threshold top genes
+            if known in (known_set):
+                common = id_rank[id_rank['string_id'] == known].loc[:,'protein_name'].tolist()
+                coexp_top.extend(common)
+        unre_coexp_top_common[unre] = tuple(coexp_top)
+        # print("Key: " + unre, "Value: " + str(unre_coexp_top_common[unre]))
+        common = mapping_dict_unre[unre]
+        unre_common.append(common)
+    # print("\nStrongest most-least annotated pairs:\n", most_least.head(10))
+
+    # Print results with STRING ids, information value
+    unre_table = coexp200[coexp200['protein1'].isin(known_set) & coexp200['protein2'].isin(unre_set)].sort_values(by='protein2', ascending=True)
+    # known_table = id_rank[id_rank['string_id'].isin(known_set)]
+    unre_table['coexpressed_with'] = unre_table['protein2'].map(unre_coexp_top_common)
+    print("\nUnreviewed Ignorome proteins found:", len(unre_common))
+    print(unre_common)
+    unre_table['TrEMBL_ID'] = unre_table['protein2'].map(mapping_dict_unre)
+    # print(unre_table.head())
+    # print(unre_table.dtypes)
+    unre_table = unre_table.loc[:,['protein2', 'TrEMBL_ID', 'coexpressed_with']].drop_duplicates(keep='first')
+    s = unre_table.coexpressed_with.str.len().sort_values(ascending=False).index
+    unre_table = unre_table.reindex(s)
+    print(unre_table.to_csv(sep='\t', index=False))
+
+    return threshold, ignorome_set, known_set, ignorome_table, unre_table
 
 def bipartite_graph(most, least):
     """
@@ -416,6 +477,21 @@ def common_to_string2(iddict, ranktable, genelist):
     return returnlist, id_rank, na_idrank
 
 
+def UniProt_StringToCommon(strings):
+    mapping_dict = cp.load(open("data/temp/mapping_dict.txt", "rb"))
+    idtable = pd.DataFrame.from_dict(mapping_dict, orient='index')
+    idtable.reset_index(inplace=True)
+    idtable = idtable.rename(columns={"index": "string_id", 0: "protein_name"})
+    protein_counts = pd.read_csv('/home/ahphan/Downloads/protein_counts.tsv', sep="\t", header=None,
+                                 names=['string_id', 'year', 'fracct'])
+    protein_counts = protein_counts.astype({'year':'int64', 'fracct':'float64'})
+    idtable['string_id'] = idtable['string_id'].apply(lambda x: x.split(".")[-1])
+    protein_counts_ovt = protein_counts.groupby(['string_id','year']).sum().groupby(level=0).cumsum().reset_index()
+    protein_counts['ovt_fracct'] = protein_counts_ovt['fracct']
+    protein_counts_1121 = protein_counts.loc[(protein_counts['year'] >= 2011) & (protein_counts['year'] < 2022)].iloc[:,[0,1,3]]
+    fc = pd.merge(protein_counts_1121, idtable, on='string_id', how='left').reset_index().iloc[:,[4,2,3]].dropna()
+    fc.to_csv('/home/ahphan/RotationData/Friedberg/ProteinFractionCounts_1121.tsv', sep="\t", header=True,index=False)
+
 def get_network_api(calculated_threshold, gene_all_common, species):
     """
     This function uses STRING API to get interaction partners of target genes (with internet)
@@ -462,21 +538,24 @@ def main():
         ranktable = pd.read_csv(options.input, sep="\t")
         specifier = "given-metric"
     else:
-        ranktable = rank_gaf_file(options.input, options.metric, options.aspect, options.recal)
+        ranktable, ranktable_supp = rank_gaf_file(options.input, options.metric, options.aspect, options.recal)
         specifier = options.input.split("/")[-1].split(".")[0].split("_")[-1]
         print(specifier)
 
     most = filter_most_annotated(ranktable, options.threshold_top, options.percentile_top)
-    least = filter_least_annotated(ranktable, options.threshold_bot, options.percentile_bot)
+    least = filter_least_annotated(ranktable, ranktable_supp, options.threshold_bot, options.percentile_bot)
     # coexp_threshold, ignorome_list, known_list = associated_ignorome(options.stringppi, options.threshold_ppi,
     #                                                                  options.percentile_ppi, most, least,
     #                                                                  options.idtable, ranktable)
-    coexp_threshold, ignorome_list, known_list, ignorome_table = associated_ignorome2(options.stringppi, options.threshold_ppi,
+    coexp_threshold, ignorome_list, known_list, ignorome_table, unre_table = associated_ignorome2(options.stringppi, options.threshold_ppi,
                                                                      options.percentile_ppi, most, least, ranktable)
     species = options.stringppi.split("/")[-1].split(".")[0]
     # get_network_api(coexp_threshold, ignorome_list, species)
-    ignorome_table.to_csv('./IgnoromeGenes_' + str(specifier) +'_'+ str(options.metric) + str(options.aspect) + '.tsv',
-                          sep="\t", header=True)
+    ignorome_table.to_csv('./IgnoromeGenes_' + str(specifier) +'_'+ str(options.metric) + str(options.aspect) +'_coexp' + str(int(coexp_threshold)) + '.tsv',
+                          sep="\t", header=True, index=False)
+    unre_table.to_csv(
+        './UnreviewedIgnoromeGenes_' + str(specifier) + '_' + str(options.metric) + str(options.aspect) +'_coexp200' + '.tsv',
+        sep="\t", header=True, index=False)
     # # Run from IDE
     # ranktable = "WyattClarkIC-perprotein.tsv"
     # idtable = "511145.protein.aliases.v11.5.txt"
