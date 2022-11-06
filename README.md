@@ -11,6 +11,7 @@ IgnoroMeNot can be installed with [conda](https://anaconda.org/anphan0828/ignoro
 ``conda install -c anphan0828 ignoromenot``
 
 ### Required files:
+#### Approach 1: provide pre-defined metric
 IgnoroMeNot requires a tab-separated file of a list of genes/gene products with any single annotation metric (e.g. GO annotation count, information content, article count). Highest and lowest annotated genes are defined based on this metric. Below is an example of how the rank table should look like:
 
 | Genes  | Metric            |
@@ -18,61 +19,68 @@ IgnoroMeNot requires a tab-separated file of a list of genes/gene products with 
 | NUDT4B | 55.34890734396416 |
 |  HTT   | 99.78875455312165 |
 
-Ignoromenot also supports the calculation of three per-protein metrics: GO annotation count ('ct'), Phillip Lord information content ('ic'), Wyatt Clark information content ('ia'), if provided a Gene Ontology Annotation File (GAF). If a GAF is provided, users need to specify which metric should be used for ranking (refer to usage).
+#### Approach 2: provide Gene Ontology Annotation File (GAF)
+Ignoromenot also supports the calculation of three per-protein metrics: GO annotation count ('ct'), Wyatt Clark information content ('ia'), article count ('pmid'), fractional count ('fc'), if provided a Gene Ontology Annotation File (GAF). If a GAF is provided, users need to specify which metric should be used for ranking (refer to usage).
 
-Additionally, a STRING interaction network and a protein alias file of the organism to be examined are required and can be downloaded from [STRING](string-db.org/cgi/download). Example: E. coli [alias file](https://stringdb-static.org/download/protein.aliases.v11.5/511145.protein.aliases.v11.5.txt.gz) and [interaction network](https://stringdb-static.org/download/protein.links.full.v11.5/511145.protein.links.full.v11.5.txt.gz). Note: large STRING files (e.g., human-id:9606) may cause IDE to crash.
+#### For both approaches: 
+Additionally, a STRING interaction network file of the organism to be examined is required and can be downloaded from [STRING](string-db.org/cgi/download). Example: E. coli [interaction network](https://stringdb-static.org/download/protein.links.full.v11.5/511145.protein.links.full.v11.5.txt.gz). Note: large STRING files (e.g., human-id:9606) may cause IDE to crash.
 
 ## IgnoroMeNot usage:
 ```
-usage: ignoromenot.py [-h] --input INPUT --idtable IDTABLE --stringppi STRINGPPI [--metric METRIC] [--aspect ASPECT] [--threshold_top THRESHOLD_TOP | --percentile_top PERCENTILE_TOP]
+usage: ignoromenot.py [-h] --input INPUT --stringppi STRINGPPI [--metric METRIC] [--aspect ASPECT] [--threshold_top THRESHOLD_TOP | --percentile_top PERCENTILE_TOP]
                       [--threshold_bot THRESHOLD_BOT | --percentile_bot PERCENTILE_BOT] [--threshold_ppi THRESHOLD_PPI | --percentile_ppi PERCENTILE_PPI]
 
 IgnoroMeNot find ignorome genes
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --threshold_top THRESHOLD_TOP, -ttop THRESHOLD_TOP
-                        Set an absolute upper threshold for most annotated genes based on the given metric.
-		 	Default to 100
+                        Set an absolute upper threshold for most annotated genes based on the given
+                        metric. Default to 100
   --percentile_top PERCENTILE_TOP, -ptop PERCENTILE_TOP
-                        Set a relative upper threshold for most annotated genes at k-th percentile based on the given metric. 
-			Cannot be provided simultaneously with --threshold_top.Example: -ptop 95 selects top 5% of genes with
-                        highest value
+                        Set a relative upper threshold for most annotated genes at k-th percentile
+                        based on the given metric. Cannot be provided simultaneously with
+                        --threshold_top.Example: -ptop 95 selects top 5% of genes with highest value
   --threshold_bot THRESHOLD_BOT, -tbot THRESHOLD_BOT
-                        Set an absolute lower threshold for least annotated genes based on the given metric. 
-			Default to 5
+                        Set an absolute lower threshold for least annotated genes based on the given
+                        metric. Default to 5
   --percentile_bot PERCENTILE_BOT, -pbot PERCENTILE_BOT
-                        Set a relative lower threshold for least annotated genes at k-th percentile based on the given metric. 
-			Cannot be provided simultaneously with --threshold_bot.Example: -pbot 10 selects top 10% of genes with
-                        lowest value
+                        Set a relative lower threshold for least annotated genes at k-th percentile
+                        based on the given metric. Cannot be provided simultaneously with
+                        --threshold_bot.Example: -pbot 10 selects top 10% of genes with lowest value
   --threshold_ppi THRESHOLD_PPI, -tppi THRESHOLD_PPI
-                        Set an absolute upper threshold for STRING protein-protein interaction score. 
-			Default to 500
+                        Set an absolute upper threshold for STRING protein-protein interaction score.
+                        Default to 500
   --percentile_ppi PERCENTILE_PPI, -pppi PERCENTILE_PPI
-                        Set a relative upper threshold for STRING protein-protein interaction score. 
-			Cannot be provided simultaneously with --threshold_ppi.Example: -pppi 95 selects top 5% of associated 
-			pairs with highest score
+                        Set a relative upper threshold for STRING protein-protein interaction score.
+                        Cannot be provided simultaneously with --threshold_ppi.Example: -pppi 95
+                        selects top 5% of associated pairs with highest score
 
 Specifiers:
   --metric METRIC, -m METRIC
-                        A single annotation metric obtained from GAF based on which the proteins will be ranked. 
-			If not specified,proteins will be ranked based on annotation count. 
-			Accepted metrics: ct, ic, ia. Default to 'ct'
+                        A single annotation metric obtained from GAF based on which the proteins will
+                        be ranked. If not specified,proteins will be ranked based on annotation count.
+                        Accepted metrics: ct, ic, ia. Default to 'ct'
   --aspect ASPECT, -a ASPECT
-                        If GAF file is provided as input, specify which aspect of GO to rank the proteins. 
-			If not specified, proteins will be ranked based on the total value across 3 aspects. 
-			Accepted aspects: All, MFO, BPO, CCO. Default to 'All' (sum accross 3 aspects)
+                        If GAF file is provided as input, specify which aspect of GO to rank the
+                        proteins. If not specified, proteins will be ranked based on the total value
+                        across 3 aspects. Accepted aspects: All, MFO, BPO, CCO. Default to 'All' (sum
+                        accross 3 aspects).
+  --recal RECAL, -r RECAL
+                        Set recal to 1 if you are running on a new GAF, the program reconstructs the
+                        ancestors and recalculates all metrics.Set recal to 0 if you only change the
+                        threshold values but run on the same GAF, the program uses old files to save
+                        time.Default to 1.
 
 Required arguments:
   --input INPUT, -i INPUT
-                        Input could be a path to a tab-separated file of a list of genes with any single annotation metric (see above sample rank table) or 
-			Input could be a GO Annotation File (GAF). In this case, filename must end with .gaf
-  --idtable IDTABLE, -id IDTABLE
-                        The path to a STRING protein alias file of the organism being examined. 
-			The filename must start with the organism ID (e.g., 9606 for human, 511145 for E.coli)
+                        Input could be a path to a tab-separated file of a list of genes with any
+                        single annotation metric (see above sample rank table) or Input could be a GO
+                        Annotation File (GAF). In this case, filename must end with .gaf
   --stringppi STRINGPPI, -ppi STRINGPPI
-                        The path to a STRING interaction network of the organism being examined. 
-			The filename must start with the organism ID (e.g., 9606 for human, 511145 for E.coli)
+                        The path to a STRING interaction network of the organism being examined. The
+                        filename must start with the organism ID (e.g., 9606 for human, 511145 for
+                        E.coli)
 ```
 ### Example usage:
 Demo data of E.coli are included in the GitHub repository.
