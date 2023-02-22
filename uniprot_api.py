@@ -8,6 +8,7 @@ import requests
 from requests.adapters import HTTPAdapter, Retry
 import csv
 import pandas as pd
+import pickle as cp
 
 POLLING_INTERVAL = 3
 API_URL = "https://rest.uniprot.org"
@@ -206,6 +207,7 @@ def api_map_STRING_GeneName(ppi):
 
 
 def api_map_STRING_UniProt(ppi):
+    # string_ids = ["9606.ENSP00000450281"]
     string_ids = ppi.iloc[:, 0].drop_duplicates().tolist() # STRING IDs messed up because UniProt API have missing fields
     # On string-db.org, it points to different protein than when mapped with API
     job_id = submit_id_mapping(from_db="STRING", to_db="UniProtKB", ids=string_ids)
@@ -216,8 +218,8 @@ def api_map_STRING_UniProt(ppi):
         mapping_dict_unre = dict()
         for entry in results['results']:
             try:
-                    # mapping_dict[entry['from']] = entry['to']['genes'][0]['geneName']['value']
-                if entry['to']['entryType'] == 'UniProtKB unreviewed (TrEMBL)':
+                    # mapping_dict[entry['from']] = entry['to']['genes'][0]['geneName']['value'] # and (entry['to']['genes'][0]['geneName']['value'] == None)
+                if (entry['to']['entryType'] == 'UniProtKB unreviewed (TrEMBL)') and ('genes' not in entry['to'].keys()):
                     mapping_dict_unre[entry['from']] = entry['to']['primaryAccession'] # UniProtKB unreviewed ID, not in results['failedIds']
                     print(mapping_dict_unre[entry['from']], entry['to']['entryType'])
                 else:
@@ -227,6 +229,7 @@ def api_map_STRING_UniProt(ppi):
                     mapping_dict[entry['from']] = entry['to']['genes'][0]['orderedLocusNames'][0]['value']
                 except KeyError:
                     continue
+    cp.dump(results, open('mapping-results-failed.txt',"wb"))
     fh = open('unknown-strings.txt', "w")
     fh2 = open('trembl-strings-names.txt', "w")
     for string_id in mapping_dict_unre.keys():
@@ -255,3 +258,5 @@ def api_map_STRING_UniProt(ppi):
 # print(mapping_dict['511145.b0360'])
 # results2 = get_id_mapping_results_stream("https://rest.uniprot.org/idmapping/uniprotkb/results/stream/604970e6779a6288c1d7dd9a932bedc7eee056b8?compressed=true&fields=accession%2Cgene_names&format=tsv")
 # print(results2)
+
+# mapping_dict,mapping_dict_unre=api_map_STRING_UniProt()

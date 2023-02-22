@@ -45,7 +45,7 @@ def parseGOTerms(inputfile, keepobsolete):
         split_term = term.split("\n")
         # alt_ids=[]
         for line in split_term:
-            if "id:" in line and "GO:" in line and "alt_id" not in line:
+            if "id: GO" in line and "GO:" in line and "alt_id" not in line:
                 GO_term = "GO:" + line.split("GO:")[-1].strip()
             if "namespace: biological_process" in line:
                 namespace = "bp"
@@ -64,15 +64,17 @@ def parseGOTerms(inputfile, keepobsolete):
         split_term = term.split("\n")
         # alt_ids=[]
         for line in split_term:
-            if "id:" in line and "GO:" in line and "alt_id" not in line:
+            if "id: GO" in line and "GO:" in line and "alt_id" not in line:
                 GO_term = "GO:" + line.split("GO:")[-1].strip()
+            # if GO_term == 'GO:0005280':
+            #     print(GO_term, line)
             alt_id = ''
             if "GO:" in line and "alt_id" in line:
                 alt_id = "GO:" + line.split("GO:")[-1].strip()
                 alt_id_to_id_mapping[alt_id] = [GO_term]
-                if alt_id == "GO:0002506":
-                    print("alt_id", alt_id)
-                    print("GO term", GO_term)
+                # if alt_id == "GO:0002506":
+                #     print("alt_id", alt_id)
+                #     print("GO term", GO_term)
             if "namespace: biological_process" in line:
                 namespace = "bp"
             elif "namespace: cellular_component" in line:
@@ -91,6 +93,7 @@ def parseGOTerms(inputfile, keepobsolete):
                     relation = "part_of"
                 try:
                     parent_GO_term = "GO:" + line.split("GO:")[1][:7]
+                    print(parent_GO_term)
                 except IndexError:
                     print(line)
                     exit()
@@ -102,7 +105,12 @@ def parseGOTerms(inputfile, keepobsolete):
                     cc_g.add_edge(GO_term, parent_GO_term, weight=relation)
                 elif namespace == "mf" and parent_GO_term in mf:
                     mf_g.add_edge(GO_term, parent_GO_term, weight=relation)
+                # else:
+                #     print(GO_term, parent_GO_term)
+                #     count +=1
 
+
+    # print(count)
     #print(alt_id_to_id_mapping["GO:0032857"])
     return mf_g, bp_g, cc_g, alt_id_to_id_mapping
 
