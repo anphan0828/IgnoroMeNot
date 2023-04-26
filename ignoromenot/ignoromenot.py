@@ -27,6 +27,10 @@ import debias_supp as debias
 import uniprot_api as uniprot
 import pickle as cp
 import time
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+
 
 # Global variables
 verbose = 0
@@ -56,37 +60,6 @@ debias.FILE_MFO_ONTOLOGY_ANCESTORS_GRAPH = FILE_MFO_ONTOLOGY_ANCESTORS_GRAPH
 debias.FILE_BPO_ONTOLOGY_ANCESTORS_GRAPH = FILE_BPO_ONTOLOGY_ANCESTORS_GRAPH
 debias.FILE_CCO_ONTOLOGY_ANCESTORS_GRAPH = FILE_CCO_ONTOLOGY_ANCESTORS_GRAPH
 
-# import py2cytoscape
-# from py2cytoscape.data.cyrest_client import CyRestClient
-#
-# cy = CyRestClient()
-# network = cy.network.create(name='My Network', collection='My network collection')
-# print(network.get_id())
-#
-# import requests
-# import json
-# # Basic Setup
-# PORT_NUMBER = 1234
-# BASE = 'http://localhost:' + str(PORT_NUMBER) + '/v1/'
-#
-# # Header for posting data to the server as JSON
-# HEADERS = {'Content-Type': 'application/json'}
-#
-# # Define dictionary of empty network
-# empty_network = {
-#         'data': {
-#             'name': 'I\'m empty!'
-#         },
-#         'elements': {
-#             'nodes':[],
-#             'edges':[]
-#         }
-# }
-#
-# res = requests.post(BASE + 'networks?collection=My%20Collection', data=json.dumps(empty_network), headers=HEADERS)
-# new_network_id = res.json()['networkSUID']
-# print('Empty network created: SUID = ' + str(new_network_id))
-
 
 
 def parse_commandlinearguments():
@@ -113,7 +86,7 @@ def parse_commandlinearguments():
     specifier_parser.add_argument('--metric', '-m', default="ct",
                                     help="A single annotation metric obtained from GAF based on which the proteins will be ranked. If not specified,"
                                          "proteins will be ranked based on annotation count.\n"
-                                         "Accepted metrics: ct, ic, ia. Default to 'ct' ")
+                                         "Accepted metrics: ct, ia, fc. Default to 'ia' ")
     specifier_parser.add_argument('--aspect', '-a', default="All",
                                     help="If GAF file is provided as input, specify which aspect of GO to rank the proteins. If not specified, "
                                          "proteins will be ranked based on the total value across 3 aspects.\n"
@@ -157,7 +130,7 @@ def parse_commandlinearguments():
 # make a new branch on gothresher, modify it
 # use different name, gocrusher
 
-def rank_gaf_file(gaf_input, metric, aspect, recal):
+def rank_gaf_file(gaf_input, metric, aspect, recal, swiss_no_gaf_path=None):
     # TODO: handle multiple input files (enumerate(options.input))
     """Takes 1 GAF file as input and return ranked data frame of 4 per-protein metrics:
     annotation count, article count, information content, propagated information content
@@ -170,29 +143,31 @@ def rank_gaf_file(gaf_input, metric, aspect, recal):
     data = debias.convertFromGAFToRequiredFormat(gaf)
     # Prot_to_GO_Map, all_GO_Terms_in_corpus = debias.createProteinToGOMapping(data)
     # Prot_to_GO_Map_propagated = debias.propagateOntologies(Prot_to_GO_Map)
-    prev_go_term_freq = debias.freqGO_TERM(data)
-    data, Prot_to_GO_Map_propagated, ontology_to_ia_map, goia_f, goia_p, goia_c, Prot_IA_propagated = debias.calculateWyattClarkInformationContent(data, int(recal), 0, None, './', 0, "All")
+    # prev_go_term_freq = debias.freqGO_TERM(data)
+    data, Prot_to_GO_Map_propagated, ontology_to_ia_map, Prot_IA_propagated, Prot_Count = \
+        debias.calculateWyattClarkInformationContent(data, int(recal), 0, None, './', 0, "All")
     new_data, discarded_data = debias.chooseProteinsBasedOnPublications(data, 100, None)
-    later_go_term_freq = debias.freqGO_TERM(data)
+    debias.calculateWyattClarkInformationContent(new_data, int(recal), 0, None, './', 0, "LTP")
+    debias.calculateWyattClarkInformationContent(discarded_data, int(recal), 0, None, './', 0, "HTP")
+    # later_go_term_freq = debias.freqGO_TERM(data)
     fc_dict = debias.calculateFractionalCountPerProtein(data, type="All")  # before filtered HTP, LTP
-    ct_dict, ic_dict, ia_dict, se_dict = debias.generateHistogram(data, data, discarded_data, 0, prev_go_term_freq,
-                      later_go_term_freq, Prot_to_GO_Map_propagated, goia_f, goia_p, goia_c)
+    # ct_dict, ic_dict, ia_dict, se_dict = debias.generateHistogram(new_data, data, discarded_data, 0, goia_f, goia_p, goia_c)
     # metric_list = metric
     # aspect_list = aspect
     if metric == "ct":
-        ranktable = pd.DataFrame.from_dict(ct_dict,orient='index')
+        ranktable = pd.DataFrame.from_dict(Prot_Count,orient='index')
     elif metric == "fc":
         ranktable = pd.DataFrame.from_dict(fc_dict,orient='index')
     elif metric == "ia":
         ranktable = pd.DataFrame.from_dict(Prot_IA_propagated,orient='index')
-    elif metric == "se":
-        ranktable = pd.DataFrame.from_dict(se_dict,orient='index')
+    # elif metric == "se":
+    #     ranktable = pd.DataFrame.from_dict(se_dict,orient='index')
     else:
-        print("Please provide a valid metric that can be calculated from GAF: ct, fc, ia, se")
+        print("Please provide a valid metric that can be calculated from GAF: ct, fc, ia")
         exit()
     ranktable.columns = [str(metric)+"_All", str(metric)+"_F", str(metric)+"_P", str(metric)+"_C"]
     ranktable.reset_index(inplace=True)
-    ranktable=ranktable.rename(columns={"index":"Genes"})
+    ranktable=ranktable.rename(columns={"index":"protein_name"})
     # ranktable.to_csv('./RankAllMetrics.tsv',sep="\t",header=True)
     go_accreted_dict = dict()
     for GO_term, value in ontology_to_ia_map.items():
@@ -206,7 +181,7 @@ def rank_gaf_file(gaf_input, metric, aspect, recal):
     # sns.boxplot(data=ia_supp.iloc[:,1])
     # plt.show()
 
-    specific_term = 8
+    specific_term = 6
     # print("Chosen threshold for high information terms: "+str(specific_term))
     # ia_threshold = np.percentile(ia_supp.iloc[:,1], float(specific_term))
     ia_blacklist = []
@@ -233,7 +208,23 @@ def rank_gaf_file(gaf_input, metric, aspect, recal):
     else:
         print("Error in aspect code. Please choose one of the following: All, MFO, BPO, CCO")
         exit()
-    plt.hist(ranktable_asp.iloc[:,1])
+    # plt.hist(ranktable_asp.iloc[:,1], bins=100)
+    # plt.xlabel("Information content in Biological Process",fontsize=15)
+    # plt.xticks(fontsize=15)
+    # plt.yticks(fontsize=15)
+    # plt.yscale("log")
+    # plt.ylabel("Number of proteins",fontsize=15)
+    # plt.show()
+
+    # Add SwissProt proteins that are not in GAF:
+    if swiss_no_gaf_path is not None:
+        no_gaf = open(swiss_no_gaf_path, 'r')
+        allLines = no_gaf.readlines()
+        for protein in allLines:
+            name = protein.strip()
+            columnName = ranktable_asp.columns.values[1]
+            df2=pd.DataFrame([[name,0]],columns=['protein_name',columnName])
+            ranktable_asp=pd.concat([ranktable_asp,df2],ignore_index=True)
     return ranktable_asp, ia_blacklist
 
 
@@ -306,10 +297,10 @@ def filter_least_annotated(ranktable, ia_blacklist, tbot, pbot):
                 # print(row[0], row[1])
                 not_least_annt_list.append(row[0])
     print("Lower absolute threshold for " + str(allrank.columns.values[1]) +": " + str(threshold)+". Number of genes: "+str(len(least_annt_list)))
-    # fh = open('LessAnnt'+str(threshold)+'.txt','w')
-    # for gene in least_annt_list:
-    #     fh.write(gene+'\n')
-    # fh.close()
+    fh = open('LessAnnt'+str(threshold)+'.txt','w')
+    for gene in least_annt_list:
+        fh.write(gene+'\n')
+    fh.close()
     # print("Supplemental aspect: ", ranktable_supp.columns.values[1], "and", ranktable_supp.columns.values[2])
     # print("Supplemental aspect 1 threshold: ", float(threshold_supp1), "and supplemental aspect max: ",
     #       max(ranktable_supp.iloc[:, 1]))
@@ -412,8 +403,8 @@ def associated_ignorome2(all_ppi, tppi, pppi, most, least, ranktable):
     # print("Top IC genes: ", string_most)
     string_least, id_rank, na_idrank = common_to_string2(mapping_dict, ranktable, least)
     # print("Bot IC genes: ", string_least)
-    # print("\nProteins not mapped to STRING (no interaction data):")  # STRING uses synonym ygcB for cas3 gene
-    # print(na_idrank)
+    print("\nProteins not mapped to STRING (no interaction data): " + str(len(na_idrank)))  # STRING uses synonym ygcB for cas3 gene
+    na_idrank.to_csv('./Proteins_no_STRING.tsv',sep='\t',header=True,index=False)
 
     # Get ignorome genes: have low knowledge/interest but interact strongly with high knowledge/interest genes
     most_least = intppi_top[intppi_top['protein1'].isin(string_most) & intppi_top['protein2'].isin(string_least)]. \
@@ -564,12 +555,11 @@ def common_to_string2(iddict, ranktable, genelist):
     :param genelist: input common gene names
     :return: gene STRING ids and idmapping table
     """
-    ranktable.columns.values[0] = "protein_name"
     idtable = pd.DataFrame.from_dict(iddict, orient='index')
     idtable.reset_index(inplace=True)
     idtable = idtable.rename(columns={"index": "string_id", 0:"protein_name"})
     # idtable = idtable.assign(protein_name=lambda dataframe: dataframe['names'].map(lambda names: names.split(" ")[0].upper())).iloc[:,[0, 2]]
-    id_rank_all = pd.merge(ranktable, idtable, on="protein_name", how="left")
+    id_rank_all = pd.merge(ranktable, idtable, on=['protein_name'], how="left")
     id_rank = id_rank_all.dropna()
     # print(idmapping.head(50))
     # idmapping = all_idmapping.drop_duplicates(keep="first").dropna()
@@ -648,7 +638,8 @@ def main():
         ranktable = pd.read_csv(options.input, sep="\t")
         specifier = "given-metric"
     else:
-        ranktable, ia_blacklist = rank_gaf_file(options.input, options.metric, options.aspect, options.recal)
+        ranktable, ia_blacklist = rank_gaf_file(options.input, options.metric, options.aspect, options.recal,
+                                                swiss_no_gaf_path='./swiss-no-gaf.txt')
         specifier = options.input.split("/")[-1].split(".")[0].split("_")[1]
         # print(specifier) # e.g., human27Jul22Filtered
 
@@ -664,7 +655,7 @@ def main():
     # bipartite_graph(most, least, ignorome_table)
     # species = options.stringppi.split("/")[-1].split(".")[0]
     # get_network_api(coexp_threshold, ignorome_list, species)
-    ignorome_table.to_csv('./TestIgnoromeGenes_' + str(specifier) +'_'+ str(options.metric) + str(options.aspect) +'_string' + str(int(coexp_threshold)) + '.tsv',
+    ignorome_table.to_csv('./NewIgnoromeGenes_' + str(specifier) +'_'+ str(options.metric) + str(options.aspect) +'_string' + str(int(coexp_threshold)) + '.tsv',
                           sep="\t", header=True, index=False)
             # ignorome_table.to_csv('./IgnoromeGenes_' + str(options.metric) + str(options.aspect) +
             #                           '_t' + str(options.percentile_top) + '_b' + str(tbot) + '_string' + str(int(coexp_threshold)) + '.tsv', sep="\t", header=True, index=False)

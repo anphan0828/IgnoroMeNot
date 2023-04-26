@@ -445,38 +445,98 @@ def parseCommandLineArguments():
     return args
 
 
-def createProteinToGOMapping(data):
+def createProteinToGOMapping(data, type):
     """
     This function creates a dictionary where key is a protein. Each protein refers to a list where the list consists of GO_TERMS.
     """
     prot_to_go = dict()
-    all_GO = []
+    Prot_Count = dict()
+    Prot_Count_noIEA = dict()
+    Prot_Annotations_noIEA = dict()
     alt_id_to_id_map = cp.load(open(FILE_ALTERNATE_ID_TO_ID_MAPPING, "rb"))
     for attnid in data:
         annotation = data[attnid]
         prot_id = annotation['DB'] + '_' + annotation['DB_Object_ID']
+        prot = annotation['DB_Object_ID']
         GO_term = annotation['GO_ID']
         evidence = annotation['Evidence']
         if GO_term in alt_id_to_id_map:
             GO_term = alt_id_to_id_map[GO_term]
-        all_GO.append(GO_term)
+
         if prot_id not in prot_to_go:
+            # Annotation Count: redundant, diferent refs are counted
+            Prot_Count[prot] = [1,0,0,0]
+            Prot_Count_noIEA[prot] = [1, 0, 0, 0] if annotation['Evidence'] != 'IEA' else [0,0,0,0]
+            Prot_Annotations_noIEA[prot] = [[],[],[],[]]
+            # incorrect: Prot_Count_noIEA[prot][0] +=1 if annotation['Evidence'] != 'IEA' else Prot_Count_noIEA[prot][0]
+            # Prot_Count[prot][0] += 1
+            # Prot_Count_noIEA[prot][0] += 1 if annotation['Evidence'] != 'IEA' else Prot_Count_noIEA[prot][0]
+            if annotation['Aspect'] == "F":
+                Prot_Count[prot][1] += 1
+                Prot_Count_noIEA[prot][1] = (Prot_Count_noIEA[prot][1] + 1) if annotation['Evidence'] != 'IEA' else Prot_Count_noIEA[prot][1]
+                Prot_Annotations_noIEA[prot][1].append(GO_term) if annotation['Evidence'] != 'IEA' else Prot_Annotations_noIEA[prot][1]
+            elif annotation['Aspect'] == "P":
+                Prot_Count[prot][2] += 1
+                Prot_Count_noIEA[prot][2] = (Prot_Count_noIEA[prot][2] + 1) if annotation['Evidence'] != 'IEA' else Prot_Count_noIEA[prot][2]
+                Prot_Annotations_noIEA[prot][2].append(GO_term) if annotation['Evidence'] != 'IEA' else Prot_Annotations_noIEA[prot][2]
+            elif annotation['Aspect'] == "C":
+                Prot_Count[prot][3] += 1
+                Prot_Count_noIEA[prot][3] = (Prot_Count_noIEA[prot][3] + 1) if annotation['Evidence'] != 'IEA' else Prot_Count_noIEA[prot][3]
+                Prot_Annotations_noIEA[prot][3].append(GO_term) if annotation['Evidence'] != 'IEA' else Prot_Annotations_noIEA[prot][3]
+            Prot_Annotations_noIEA[prot][0].append(GO_term) if annotation['Evidence'] != 'IEA' else Prot_Annotations_noIEA[prot][0]
+            # prot_to_go: non-redundant, keep protein-GO pairs-evidence only
             prot_to_go[prot_id] = [] # initialize new key
             if [GO_term, annotation['Aspect'], evidence] not in prot_to_go[prot_id]: # check if exists
                 prot_to_go[prot_id].append([GO_term, annotation['Aspect'], evidence])
             # else:
             #     print(prot_id, GO_term, evidence)
         else:
+            Prot_Count[prot][0] += 1
+            Prot_Count_noIEA[prot][0] = (Prot_Count_noIEA[prot][0] + 1) if annotation['Evidence'] != 'IEA' else Prot_Count_noIEA[prot][0]
+            Prot_Annotations_noIEA[prot][0].append(GO_term) if annotation['Evidence'] != 'IEA' else Prot_Annotations_noIEA[prot][0]
+            if annotation['Aspect'] == "F":
+                Prot_Count[prot][1] += 1
+                Prot_Count_noIEA[prot][1] = (Prot_Count_noIEA[prot][1] + 1) if annotation['Evidence'] != 'IEA' else Prot_Count_noIEA[prot][1]
+                Prot_Annotations_noIEA[prot][1].append(GO_term) if annotation['Evidence'] != 'IEA' else Prot_Annotations_noIEA[prot][1]
+            elif annotation['Aspect'] == "P":
+                Prot_Count[prot][2] += 1
+                Prot_Count_noIEA[prot][2] = (Prot_Count_noIEA[prot][2] + 1) if annotation['Evidence'] != 'IEA' else Prot_Count_noIEA[prot][2]
+                Prot_Annotations_noIEA[prot][2].append(GO_term) if annotation['Evidence'] != 'IEA' else Prot_Annotations_noIEA[prot][2]
+            elif annotation['Aspect'] == "C":
+                Prot_Count[prot][3] += 1
+                Prot_Count_noIEA[prot][3] = (Prot_Count_noIEA[prot][3] + 1) if annotation['Evidence'] != 'IEA' else Prot_Count_noIEA[prot][3]
+                Prot_Annotations_noIEA[prot][3].append(GO_term) if annotation['Evidence'] != 'IEA' else Prot_Annotations_noIEA[prot][3]
             if [GO_term, annotation['Aspect'], evidence] not in prot_to_go[prot_id]:
                 prot_to_go[prot_id].append([GO_term, annotation['Aspect'], evidence])
     # TODO: find overlapping terms with different evidence codes
             # else:
                 # print(prot_id, GO_term, evidence)
         # vprint(prot_to_go[prot_id])
-    return prot_to_go, list(set(all_GO))
+    fh = open(type + 'Proteins_New.tsv', 'w')
+    for prot, count_list in Prot_Count_noIEA.items():
+        # print(prot.split("_")[-1], ia_list)
+        fh.write(prot + "\t" + "[" + str(count_list[0]) + ", " + str(count_list[1]) + ", " + str(count_list[2]) + ", " + str(
+                count_list[3]) + "]\n")
+    fh.close()
 
+    fh = open(type + 'Proteins_Annotations.tsv', 'w')
+    for prot, term_list in Prot_Annotations_noIEA.items():
+        # print(prot.split("_")[-1], ia_list)
+        fh.write(prot + "\t" + str(term_list[0]) + "\t" + str(term_list[1]) + "\t" + str(term_list[2]) + "\t" + str(
+                term_list[3]) + "\n")
+    fh.close()
 
-def propagateOntologies(Prot_to_GO_Map): # update on Feb 13: Prot_to_GO_Map now has 'evidence' key
+    # semsimdict = calculateSemanticSimilarity(Prot_Annotations_noIEA)
+    if type == "All":
+        fh = open(type + 'Proteins_WithIEA.tsv', 'w')
+        for prot, count_list in Prot_Count.items():
+            # print(prot.split("_")[-1], ia_list)
+            fh.write(prot + "\t" + "[" + str(count_list[0]) + ", " + str(count_list[1]) + ", " + str(count_list[2]) + ", " + str(
+                    count_list[3]) + "]\n")
+        fh.close()
+    return prot_to_go, Prot_Count_noIEA
+
+def propagateOntologies(Prot_to_GO_Map, type): # update on Feb 13: Prot_to_GO_Map now has 'evidence' key
     """
     This function takes in each annotation and constructs the ancestors of that term from their respective Aspect
     Prot_to_GO_Map: {protein1: [['GO1','Aspect1'], ['GO2','Aspect2'], ...], protein2: [ [], [], ...], ...}
@@ -488,12 +548,16 @@ def propagateOntologies(Prot_to_GO_Map): # update on Feb 13: Prot_to_GO_Map now 
     # vprint(alt_id_to_id_map)
     Prot_to_GO_Map_new = dict()
     Prot_to_GO_Map_noIEA = dict()
+    Prot_to_DAG = dict()
+    Prot_to_GO_unique_noIEA=dict()
+    Prot_to_MICA = dict()
     mf_ancestors = cp.load(open(FILE_MFO_ONTOLOGY_ANCESTORS_GRAPH, "rb"))
     bp_ancestors = cp.load(open(FILE_BPO_ONTOLOGY_ANCESTORS_GRAPH, "rb"))
     cc_ancestors = cp.load(open(FILE_CCO_ONTOLOGY_ANCESTORS_GRAPH, "rb"))
-    for eachprotein in Prot_to_GO_Map:
+    for eachprotein in Prot_to_GO_Map: # all proteins listed in GAF, all evidence (repeated terms with different evidence)
         ancestors = []
-        ancestors_noIEA = []
+        ancestors_noIEA = [[],[],[],[]]
+        unique_terms_noIEA = {"F":set(),"P":set(),"C":set()}
         annotations = Prot_to_GO_Map[eachprotein]
         for annotation in annotations:
             aspect = annotation[1]
@@ -506,23 +570,125 @@ def propagateOntologies(Prot_to_GO_Map): # update on Feb 13: Prot_to_GO_Map now 
                 ancestors.extend(bp_ancestors[GO_term])
             if aspect == 'C':
                 ancestors.extend(cc_ancestors[GO_term])
-            if aspect == 'F' and evidence != 'IEA':
-                ancestors_noIEA.extend(mf_ancestors[GO_term])
-            if aspect == 'P' and evidence != 'IEA':
-                ancestors_noIEA.extend(bp_ancestors[GO_term])
-            if aspect == 'C' and evidence != 'IEA':
-                ancestors_noIEA.extend(cc_ancestors[GO_term])
+            # only record and propagate non-IEA annotations
+            if aspect == 'F' and evidence not in ['IEA','ND']:
+                # only propagate when not already in unique_terms
+                ancestors_noIEA[1].extend(mf_ancestors[GO_term]) if GO_term not in unique_terms_noIEA['F'] else ancestors_noIEA[1]
+                unique_terms_noIEA['F'].add(GO_term)
+            if aspect == 'P' and evidence not in ['IEA','ND']:
+                ancestors_noIEA[2].extend(bp_ancestors[GO_term]) if GO_term not in unique_terms_noIEA['P'] else ancestors_noIEA[2]
+                unique_terms_noIEA['P'].add(GO_term)
+            if aspect == 'C' and evidence not in ['IEA','ND']:
+                ancestors_noIEA[3].extend(cc_ancestors[GO_term]) if GO_term not in unique_terms_noIEA['C'] else ancestors_noIEA[3]
+                unique_terms_noIEA['C'].add(GO_term)
         ancestors = list(set(ancestors))
         Prot_to_GO_Map_new[eachprotein] = ancestors # Prot_to_GO_Map_new: {protein1: ['GOpar1', 'GOpar2',...], protein2: [], ...}
-        Prot_to_GO_Map_noIEA[eachprotein] = ancestors_noIEA
-    fh = open("AllProteins_Ancestors_noIEA.tsv", "w")
+        # countAncestors = collections.Counter(ancestors_noIEA)
+        # micas=[[],[],[]]
+        # for item,count in countAncestors.items():
+        #     if len(unique_terms_noIEA['F']) <= 1:
+        #         if 'GO:0003674' not in unique_terms_noIEA['F']:
+        #             micas[0] = list(unique_terms_noIEA['F'])
+        #         pass
+        #     elif count == len(unique_terms_noIEA['F']) and item in mf_ancestors.keys():
+        #         micas[0].append(item)
+        #         pass
+        #     if len(unique_terms_noIEA['P']) <= 1:
+        #         if 'GO:0008150' not in unique_terms_noIEA['P']:
+        #             micas[1] = list(unique_terms_noIEA['P'])
+        #         pass
+        #     elif count == len(unique_terms_noIEA['P']) and item in bp_ancestors.keys():
+        #         micas[1].append(item)
+        #         pass
+        #     if len(unique_terms_noIEA['C']) <= 1:
+        #         if 'GO:0005575' not in unique_terms_noIEA['C']:
+        #             micas[2] = list(unique_terms_noIEA['C'])
+        #     elif count == len(unique_terms_noIEA['C']) and item in cc_ancestors.keys():
+        #         micas[2].append(item)
+        # Prot_to_MICA[eachprotein] = micas
+        ancestors_noIEA[0] = list(set([*ancestors_noIEA[1],*ancestors_noIEA[2],*ancestors_noIEA[3]])) # annotation DAG of each protein
+        Prot_to_GO_Map_noIEA[eachprotein] = ancestors_noIEA[0] # this dict only keeps all ancestors across 3 aspects
+        Prot_to_DAG[eachprotein] = [set(ancestors_noIEA[1]),set(ancestors_noIEA[2]),set(ancestors_noIEA[3])] # use to count subgraphs
+        Prot_to_GO_unique_noIEA[eachprotein] = [list(set(unique_terms_noIEA['F'])),list(set(unique_terms_noIEA['P'])),list(set(unique_terms_noIEA['C']))]
+    cp.dump(Prot_to_DAG,open("Prot_to_DAG", "wb"))
+    # Consider writing for "All" only
+    fh = open(str(type)+"Proteins_DAG.tsv", "w")
     for prot in Prot_to_GO_Map_noIEA:
         if prot.split("_")[-1] == '9606':
-            fh.write(prot + "\t" + str(Prot_to_GO_Map_noIEA[prot]) + "\n")
+            fh.write(prot + "\t" + str(Prot_to_GO_Map_noIEA[prot]) + "\t" + str(Prot_to_DAG[prot][0]) + "\t" + str(Prot_to_DAG[prot][1]) + "\t" + str(Prot_to_DAG[prot][2]) + "\n")
         else:
-            fh.write(prot.split("_")[-1] + "\t" + str(Prot_to_GO_Map_noIEA[prot]) + "\n")
+            fh.write(prot.split("_")[-1] + "\t" + str(Prot_to_GO_Map_noIEA[prot]) + "\t" + str(Prot_to_DAG[prot][0]) + "\t" + str(Prot_to_DAG[prot][1]) + "\t" + str(Prot_to_DAG[prot][2]) + "\n")
     fh.close()
-    return Prot_to_GO_Map_new, Prot_to_GO_Map_noIEA
+    if type == "All":
+        fh = open(str(type)+"Proteins_Ancestors_WithIEA.tsv", "w")
+        for prot in Prot_to_GO_Map_new:
+            if prot.split("_")[-1] == '9606':
+                fh.write(prot + "\t" + str(Prot_to_GO_Map_new[prot]) + "\n")
+            else:
+                fh.write(prot.split("_")[-1] + "\t" + str(Prot_to_GO_Map_new[prot]) + "\n")
+        fh.close()
+    LCAs=calculateSemanticSimilarity(Prot_to_GO_unique_noIEA,type)
+    # fh = open(str(type) + "Proteins_UniqueNum.tsv", "w") # Proteins_Annotations.tsv if dont use len() functions
+    # for prot,terms in Prot_to_GO_unique_noIEA.items():
+    #     if prot.split("_")[-1] == '9606':
+    #         fh.write(prot + "\t" + str(len([item for aspect in terms for item in aspect])) +"\t" +str(len(terms[0])) + "\t" +str(len(terms[1]))+"\t" + str(len(terms[2])) + "\n")
+    #     else:
+    #         fh.write(prot.split("_")[-1] + "\t" + str(len([item for aspect in terms for item in aspect])) +"\t" +str(len(terms[0])) + "\t" +str(len(terms[1]))+"\t" + str(len(terms[2])) + "\n")
+    # fh.close()
+    return Prot_to_GO_Map_noIEA, LCAs
+
+def calculateSemanticSimilarity(Prot_to_GO_unique_noIEA,type):
+    import more_itertools
+    mf_g = cp.load(open(FILE_MFO_ONTOLOGY_GRAPH, "rb"))
+    bp_g = cp.load(open(FILE_BPO_ONTOLOGY_GRAPH, "rb"))
+    cc_g = cp.load(open(FILE_CCO_ONTOLOGY_GRAPH, "rb"))
+    mf_grev=mf_g.reverse()
+    bp_grev=bp_g.reverse()
+    cc_grev=cc_g.reverse()
+    LCAs = dict()
+    # Less computational heavy
+    try:
+        stored = cp.load(open('data/temp/terms_to_lca_map','rb'))
+    except IOError:
+        print("Redoing LCA find:")
+        stored={'F':dict(),'P':dict(),'C':dict()}
+    for protein, aspects in Prot_to_GO_unique_noIEA.items():
+        print(protein)
+        LCAs[protein] = [[],[],[]]
+        for aspect,leaves in enumerate(aspects):
+            if aspect == 0:
+                pairs = list(more_itertools.distinct_combinations(leaves,2))
+                for (node1,node2) in pairs:
+                    try:
+                        common_ancestor = stored['F'][(node1,node2)]
+                        LCAs[protein][0].append(common_ancestor)
+                    except KeyError:
+                        common_ancestor = nx.lowest_common_ancestor(mf_grev,node1,node2)
+                        stored['F'][(node1,node2)] = common_ancestor
+                        LCAs[protein][0].append(common_ancestor)
+            elif aspect == 1:
+                pairs = list(more_itertools.distinct_combinations(leaves, 2))
+                for (node1, node2) in pairs:
+                    try:
+                        common_ancestor = stored['P'][(node1, node2)]
+                        LCAs[protein][1].append(common_ancestor)
+                    except KeyError:
+                        common_ancestor = nx.lowest_common_ancestor(bp_grev, node1, node2)
+                        stored['P'][(node1, node2)] = common_ancestor
+                        LCAs[protein][1].append(common_ancestor)
+            elif aspect == 2:
+                pairs = list(more_itertools.distinct_combinations(leaves, 2))
+                for (node1, node2) in pairs:
+                    try:
+                        common_ancestor = stored['C'][(node1, node2)]
+                        LCAs[protein][2].append(common_ancestor)
+                    except KeyError:
+                        common_ancestor = nx.lowest_common_ancestor(cc_grev, node1, node2)
+                        stored['C'][(node1, node2)] = common_ancestor
+                        LCAs[protein][2].append(common_ancestor)
+    cp.dump(stored,open('data/temp/terms_to_lca_map','wb'))
+    cp.dump(LCAs,open(type+"test_LCA.txt","wb"))
+    return LCAs
 
 
 def propagateOntologiesForEachGO(all_GO_terms):
@@ -560,8 +726,9 @@ def findFrequency(annotations, Prot_to_GO_Map):
     return count
 
 
-def assignProbabilitiesToOntologyTree(g, Prot_to_GO_Map, all_GO_Terms, ontology_to_ia_map, aspect):  # conditional prob of each GO term
+def assignProbabilitiesToOntologyTree(g, Prot_to_GO_Map, ontology_to_ia_map, aspect):  # conditional prob of each GO term, use Prot_to_GO_Map_propagated
     # Feb 13: this function returns dict with IA of every GO term, every evidence counted
+    # Mar 1: this function returns dict with IA of every GO term, only non-IEA evidence counted
 
     # Old calculation:
     # fh = open("WC_IC_"+str(aspect)+".txt", "w")
@@ -641,24 +808,24 @@ def assignProbabilitiesToOntologyTree(g, Prot_to_GO_Map, all_GO_Terms, ontology_
     return go_to_ia_dict
 
 
-def assignProbabilitiesToOntologyGraphs(Prot_to_GO_Map, all_GO_Terms):  # first step: graph before tree, Prot_to_GO_Map_propagated
+def assignProbabilitiesToOntologyGraphs(Prot_to_GO_Map):  # first step: graph before tree, Prot_to_GO_Map_propagated
     # deleted last argument aspects because not used
     mf_g = cp.load(open(FILE_MFO_ONTOLOGY_GRAPH, "rb"))
     bp_g = cp.load(open(FILE_BPO_ONTOLOGY_GRAPH, "rb"))
     cc_g = cp.load(open(FILE_CCO_ONTOLOGY_GRAPH, "rb"))
     ontology_to_ia_map = dict()
     print("Assigning cond prob:")
-    go_to_ia_dict_f = assignProbabilitiesToOntologyTree(mf_g, Prot_to_GO_Map, all_GO_Terms, ontology_to_ia_map, 'MFO')
+    go_to_ia_dict_f = assignProbabilitiesToOntologyTree(mf_g, Prot_to_GO_Map, ontology_to_ia_map, 'MFO')
     # fdict = open("WC_dictf", "w")
     # for GO in go_to_ia_dict_f.keys():
     #     fdict.write(GO + "\t" + str(go_to_ia_dict_f[GO]) + "\n")
     # fdict.close()
-    go_to_ia_dict_p = assignProbabilitiesToOntologyTree(bp_g, Prot_to_GO_Map, all_GO_Terms, ontology_to_ia_map, 'BPO')
+    go_to_ia_dict_p = assignProbabilitiesToOntologyTree(bp_g, Prot_to_GO_Map, ontology_to_ia_map, 'BPO')
     # fdict = open("WC_dictp", "w")
     # for GO in go_to_ia_dict_p.keys():
     #     fdict.write(GO + "\t" + str(go_to_ia_dict_p[GO]) + "\n")
     # fdict.close()
-    go_to_ia_dict_c = assignProbabilitiesToOntologyTree(cc_g, Prot_to_GO_Map, all_GO_Terms, ontology_to_ia_map, 'CCO')
+    go_to_ia_dict_c = assignProbabilitiesToOntologyTree(cc_g, Prot_to_GO_Map, ontology_to_ia_map, 'CCO')
     # fdict = open("WC_dictc", "w")
     # for GO in go_to_ia_dict_c.keys():
     #     fdict.write(GO + "\t" + str(go_to_ia_dict_c[GO]) + "\n")
@@ -686,13 +853,7 @@ def assignProbabilitiesToOntologyGraphs(Prot_to_GO_Map, all_GO_Terms):  # first 
             continue
     fgo.close()
 
-    fh = open("AllProteins_Ancestors.tsv","w")
-    for prot in Prot_to_GO_Map:
-        if prot.split("_")[-1] == '9606':
-            fh.write(prot+"\t"+str(Prot_to_GO_Map[prot])+"\n")
-        else:
-            fh.write(prot.split("_")[-1]+"\t"+str(Prot_to_GO_Map[prot])+"\n")
-    fh.close()
+
     # for key,item in ontology_to_ia_map.items():
     #     if item[1] != 0:
     #         print((key) +":"+str(item))
@@ -715,10 +876,11 @@ def assignProbabilitiesToOntologyGraphs(Prot_to_GO_Map, all_GO_Terms):  # first 
     return ontology_to_ia_map, go_to_ia_dict_f, go_to_ia_dict_p, go_to_ia_dict_c
 
 
-def calculateInformationAccretionForEachProtein(Prot_to_GO_Map, ontology_to_ia_map, goia_f, goia_p, goia_c, Prot_to_GO_Map_noIEA): # updated on Nov 9 to get correct WyattClarkIA, Prot_to_GO_Map_propagated is passed here
+def calculateInformationAccretionForEachProtein(ontology_to_ia_map, goia_f, goia_p, goia_c, Prot_to_GO_Map_noIEA): # updated on Nov 9 to get correct WyattClarkIA, Prot_to_GO_Map_propagated is passed here
     # Feb 13: now use Prot_to_GO_Map_noIEA (don't count IEA annotations in ia(protein) although ontology_to_ia_map counts all evidence)
     vprint("Starting calculation of ia for each protein")
     infoAccr = dict()
+    # propagated_dag=dict()
     alt_id_to_id_map = cp.load(open(FILE_ALTERNATE_ID_TO_ID_MAPPING, "rb"))
     for prot in Prot_to_GO_Map_noIEA:  # to get HTP, LTP, provide corresponding Prot_to_GO_Map_propogated from filtered data
         annotations = Prot_to_GO_Map_noIEA[prot]
@@ -726,6 +888,9 @@ def calculateInformationAccretionForEachProtein(Prot_to_GO_Map, ontology_to_ia_m
         ia_f = 0
         ia_p = 0
         ia_c = 0
+        # dag_f=[]
+        # dag_p=[]
+        # dag_c=[]
         for GO_term in annotations:
             # if len(annotation) == 2:
             #     GO_term = annotation[0]
@@ -738,14 +903,18 @@ def calculateInformationAccretionForEachProtein(Prot_to_GO_Map, ontology_to_ia_m
             ia += ontology_to_ia_map[GO_term][1]
             if GO_term in goia_f.keys():
                 ia_f += goia_f[GO_term]
+                # dag_f.append(GO_term)
             elif GO_term in goia_p.keys():
                 ia_p += goia_p[GO_term]
+                # dag_p.append(GO_term)
             elif GO_term in goia_c.keys():
                 ia_c += goia_c[GO_term]
+                # dag_c.append(GO_term)
             # else:
             #     if GO_term not in ["GO:0003674", "GO:0005575", "GO:0008150"]:
             #         print("GO term", GO_term, "not in ontology") # in ontology_to_ia_map but not in goia_dict
         infoAccr[prot] = [ia, ia_f, ia_p, ia_c]
+        # propagated_dag[prot] = [[*dag_f,*dag_p,*dag_c],dag_f,dag_p,dag_c]
     print(len(infoAccr))
     return infoAccr # dictionary of IA per protein
 
@@ -788,11 +957,11 @@ def calculateFractionalCountPerProtein(data,type):
         for ref, count in Each_Ref_to_FC.items():
             Each_Ref_to_FC[ref] = 1. / count  # fc of each ref
         # print("Total number of references for " + str(type) + ", " +str(aspect) +": " + str(len(Each_Ref_to_FC)))
-        fh = open('PMIDRefences.tsv', "w")
-        for ref in Each_Ref_to_FC.keys():
-            if "PMID" in ref:
-                fh.write(ref.split(":")[-1]+"\n")
-        fh.close()
+        # fh = open('PMIDRefences.tsv', "w")
+        # for ref in Each_Ref_to_FC.keys():
+        #     if "PMID" in ref:
+        #         fh.write(ref.split(":")[-1]+"\n")
+        # fh.close()
         fc_dict_asp[aspect] = dict()
 
         for prot, refs in ref_list.items():
@@ -899,21 +1068,22 @@ def calculateWyattClarkInformationContent(data, recal, crisp, percentile_val, ou
         outputfiles[input_num].split("/")[-1].split("_")[:-2]) + ".txt"
     # vprint(ontology_to_ia_map_filename)
     # exit()
-    Prot_to_GO_Map, all_GO_Terms_in_corpus = createProteinToGOMapping(data) # this function is called 3 times for All, HTP, LTP
+    Prot_to_GO_Map, Prot_Count_noIEA = createProteinToGOMapping(data, type) # this function is called 3 times for All, HTP, LTP
+    # updated Mar 11: the previous function also calculate Annotation Counts (with and without IEA, returning noIEA)
     if type == "All":
         print("WyattClark calculation for all data")
     elif type == "HTP":
         print("WyattClark calculation for HTP data, with same IA for term")
     else:
         print("WyattClark calculation for LTP data, with same IA for term")
-    Prot_to_GO_Map_propagated, Prot_to_GO_Map_noIEA = propagateOntologies(Prot_to_GO_Map) # depending on data provided to this function
-    # Prot_to_GO_Map_propagated_LTP = propagateOntologies(Prot_to_GO_Map_LTP)
-    # Prot_to_GO_Map_propagated_HTP = propagateOntologies(Prot_to_GO_Map_HTP)
+    # consider combining createProteinToGOMapping (loop over each annt and count) and propagateOntologies (find ancestors for each term)
+    Prot_to_GO_Map_noIEA, Prot_to_LCA = propagateOntologies(Prot_to_GO_Map, type) # depending on data provided to this function
 
     if (recal == 1 and type =="All"): # do not recal for HTP and LTP calls, even if recal = 1; All has been called first, so IA dict have already been dumped
         vprint(
             "Recalculating Information Accretion for Wyatt Clark Information Content. This may take a long time depending on the size of input")
-        ontology_to_ia_map, goia_f, goia_p, goia_c = assignProbabilitiesToOntologyGraphs(Prot_to_GO_Map_propagated, all_GO_Terms_in_corpus)  # 3 dicts returned from Graph function call will be used in generateHistogram
+        ontology_to_ia_map, goia_f, goia_p, goia_c = assignProbabilitiesToOntologyGraphs(Prot_to_GO_Map_noIEA)  # 3 dicts returned from Graph function call will be used in generateHistogram
+        # Mar 1: passing Prot_to_GO_Map_noIEA to previous function, instead of Prot_to_GO_Map_propagated
         if os.path.isdir("data/temp/") == False:
             os.makedirs("data/temp/")
         cp.dump(ontology_to_ia_map, open("data/temp/" + ontology_to_ia_map_filename, "wb"))
@@ -930,18 +1100,58 @@ def calculateWyattClarkInformationContent(data, recal, crisp, percentile_val, ou
     except IOError as e:
         print("File for GO_Term to ia NOT FOUND. Please rerun the program with the argument -recal 1")
         exit()
-    Prot_IA_propagated = calculateInformationAccretionForEachProtein(Prot_to_GO_Map_propagated, ontology_to_ia_map, goia_f, goia_p, goia_c, Prot_to_GO_Map_noIEA) # same 4 dicts loaded from saved datam, but different Prot_to_GO_Map_propagated
+
+    # Choose MICA out in many micas
+    Prot_SS = dict()
+    fh = open(type+'Proteins_SS_all.tsv','w')
+    fh2 = open(type+'Proteins_LCAs.tsv','w')
+    for prot, lcas in Prot_to_LCA.items():
+    ## if choose max
+        # ss_F = max(ontology_to_ia_map[item][2] if item != "GO:0003674" else 0 for item in lcas[0]) if len(lcas[0]) > 0 else -1
+        # ss_P = max(ontology_to_ia_map[item][2] if item != "GO:0008150" else 0 for item in lcas[1]) if len(lcas[1]) > 0 else -1
+        # ss_C = max(ontology_to_ia_map[item][2] if item != "GO:0005575" else 0 for item in lcas[2]) if len(lcas[2]) > 0 else -1
+        # if prot.split("_")[-1] == '9606':
+        #     fh.write(prot + "\t" + "[" + str(0) + ", " + str(ss_F) + ", " + str(ss_P) + ", " + str(
+        #         ss_C) +  "]\n")
+        #     fh2.write(prot + "\t" + str(lcas) + "\n")
+        #     Prot_SS[prot] = [0,ss_F,ss_P,ss_C]
+        # else:
+        #     fh.write(prot.split("_")[-1] + "\t" + "[" + str(0) + ", " + str(ss_F) + ", " + str(ss_P) + ", " + str(
+        #         ss_C) +  "]\n")
+        #     fh2.write(prot.split("_")[-1] + "\t" + str(lcas) + "\n")
+        #     Prot_SS[prot.split("_")[-1]] = [0,ss_F,ss_P,ss_C]
+    ## if keep all
+        ss_F = [ontology_to_ia_map[item][2] if item != "GO:0003674" else 0 for item in lcas[0]]
+        ss_P = [ontology_to_ia_map[item][2] if item != "GO:0008150" else 0 for item in lcas[1]]
+        ss_C = [ontology_to_ia_map[item][2] if item != "GO:0005575" else 0 for item in lcas[2]]
+        if prot.split("_")[-1] == '9606':
+            fh.write(prot + "\t" + str(ss_F) + "\t" + str(ss_P) + "\t" + str(ss_C) +  "\n")
+            fh2.write(prot + "\t" + str(lcas) + "\n")
+            Prot_SS[prot] = [ss_F,ss_P,ss_C]
+        else:
+            fh.write(prot.split("_")[-1] + "\t" + str(ss_F) + "\t" + str(ss_P) + "\t" + str(ss_C) +  "\n")
+            fh2.write(prot.split("_")[-1] + "\t" + str(lcas) + "\n")
+            Prot_SS[prot.split("_")[-1]] = [ss_F,ss_P,ss_C]
+
+    fh.close()
+    fh2.close()
+    Prot_IA_propagated = calculateInformationAccretionForEachProtein(ontology_to_ia_map, goia_f, goia_p, goia_c, Prot_to_GO_Map_noIEA) # same 4 dicts loaded from saved data, but different Prot_to_GO_Map_propagated
     fh = open(type+'Proteins_IA.tsv', 'w')  # replace AllProteins_IA (line 1436), havent removed LTPProteins_IA, HTPProteins_IA
+    # fh2=open(type+'Proteins_DAG.tsv','w')
     Prot_IA_propagated2 = dict()  # new name proteins without DB
     for prot, ia_list in Prot_IA_propagated.items():
         # print(prot.split("_")[-1], ia_list)
         if prot.split("_")[-1] == '9606':
-            fh.write(prot+"\t"+ "[" + str(ia_list[0]) + ", " + str(ia_list[1]) + ", " + str(ia_list[2]) + ", " + str(ia_list[3]) + "]\n" )
+            fh.write(prot+"\t"+ "[" + str(ia_list[0]) + ", " + str(ia_list[1]) + ", " + str(ia_list[2]) + ", " + str(ia_list[3]) + "]\n")
+            # fh2.write(prot+"\t"+str(propagated_DAG[prot][0])+"\t"+str(propagated_DAG[prot][1])+"\t"+str(propagated_DAG[prot][2])+"\t"+str(propagated_DAG[prot][3])+"\n")
             Prot_IA_propagated2[prot] = ia_list
         else:
-            fh.write(prot.split("_")[-1] + "\t" + "[" + str(ia_list[0]) + ", " + str(ia_list[1]) + ", " + str(ia_list[2]) + ", " + str(ia_list[3]) + "]\n" )
+            fh.write(prot.split("_")[-1] + "\t" + "[" + str(ia_list[0]) + ", " + str(ia_list[1]) + ", " + str(ia_list[2]) + ", " + str(ia_list[3]) + "]\n")
+            # fh2.write(prot.split("_")[-1] + "\t" + str(propagated_DAG[prot][0]) + "\t" + str(propagated_DAG[prot][1]) + "\t" + str(
+            #     propagated_DAG[prot][2]) + "\t" + str(propagated_DAG[prot][3]) + "\n")
             Prot_IA_propagated2[prot.split("_")[-1]] = ia_list
     fh.close()
+    # fh2.close()
     # print("Printing Wyatt Clark IA per protein: ")
     # fhwc = open("WyattClarkIC-perprotein.tsv", "w") # just for IgnoroMeNot use
     # fhwc.write("DB_Object_Symbol\tWyattClarkIC\n")
@@ -980,10 +1190,8 @@ def calculateWyattClarkInformationContent(data, recal, crisp, percentile_val, ou
     else:
         new_data=data
     # print("Printing Wyatt Clark IC per protein: ")
-    # print(calculateInformationAccretionForEachProtein(Prot_to_GO_Map_propagated, ontology_to_ia_map))
-    # vprint(threshold)
-    return new_data, Prot_to_GO_Map_propagated, ontology_to_ia_map, goia_f, goia_p, goia_c, Prot_IA_propagated2
-
+    return new_data, Prot_to_GO_Map_noIEA, ontology_to_ia_map, Prot_IA_propagated2, Prot_Count_noIEA
+    # return Prot_to_GO_Map_noIEA instead of Prot_to_GO_Map_propagated
 
 def chooseProteinsBasedOnReferences(data, select, inverse_select):
     group = []
@@ -1225,7 +1433,7 @@ def writeReport(filename, report):
     workbook.close()"""
 
 
-def generateHistogram(data, originalData, discarded_data, species, prev, lat, Prot_to_GO_Map_propagated, go_to_ia_dict_f, go_to_ia_dict_p, go_to_ia_dict_c):
+def generateHistogram(data, originalData, discarded_data, species, go_to_ia_dict_f, go_to_ia_dict_p, go_to_ia_dict_c):
     # first argument options is removed and files are not written
     proteinDict = {}
     newproteinDict = {}
@@ -1368,14 +1576,16 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, Pr
     # print(removedProt)
     # filepath = options.histogram
     # outputfilename = "/."
-    fileTemp1 = open("prev.txt", "w")
-    for i in prev:
-        fileTemp1.write(str(i) + "\t" + str(prev[i]) + "\n")
-    fileTemp1.close()
-    fileTemp2 = open("later.txt", "w")
-    for j in lat:
-        fileTemp2.write(str(j) + "\t" + str(lat[j]) + "\n")
-    fileTemp2.close()
+    # Commented on Mar 11: files not used
+    # fileTemp1 = open("prev.txt", "w")
+    # for i in prev:
+    #     fileTemp1.write(str(i) + "\t" + str(prev[i]) + "\n")
+    # fileTemp1.close()
+    # fileTemp2 = open("later.txt", "w")
+    # for j in lat:
+    #     fileTemp2.write(str(j) + "\t" + str(lat[j]) + "\n")
+    # fileTemp2.close()
+
     # print(prev)
     # if (filepath[-1] == '/'):
     #     if os.path.isdir(filepath) == False:
@@ -1404,15 +1614,12 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, Pr
     prev_P = freqGO_TERM(data)
     prev_val_p = [prev_P[key] for key in prev_P]
 
-    prev_val = [prev[key] for key in prev]
-
-    # print(sum(prev_val),np.mean(prev_val))
-    new_prev_val = [-math.log(val / sum(prev_val), 2) for val in prev_val]
+    ##prev_val = [prev[key] for key in prev]
+    ##new_prev_val = [-math.log(val / sum(prev_val), 2) for val in prev_val]
     # print(sum(prev_val))
     # prev_val=new_prev_val
-    lat_val = [lat[key] for key in lat]
-    # print(sum(lat_val),np.mean(lat_val))
-    new_lat_val = [-math.log(val / sum(lat_val), 2) for val in lat_val]
+    ##lat_val = [lat[key] for key in lat]
+    ##new_lat_val = [-math.log(val / sum(lat_val), 2) for val in lat_val]
     # print(sum(lat_val))
     # lat_val=new_lat_val
 
@@ -1441,7 +1648,7 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, Pr
     print("P", num_P)
     print("C", num_C)
 
-    print(len(prev))
+    # print(len(prev))
     print("Aspect dict", len(aspect_dict))
 
     ############################################################################################################
@@ -1449,15 +1656,15 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, Pr
     prev_P = freqGO_TERM(originalData)
     prev_val_p = [prev_P[key] for key in prev_P]
 
-    prev_val = [prev[key] for key in prev]
+    ##prev_val = [prev[key] for key in prev]
 
     # print(sum(prev_val),np.mean(prev_val))
-    new_prev_val = [-math.log(val / sum(prev_val), 2) for val in prev_val]
+    ##new_prev_val = [-math.log(val / sum(prev_val), 2) for val in prev_val]
     # print(sum(prev_val))
     # prev_val=new_prev_val
-    lat_val = [lat[key] for key in lat]
+    ##lat_val = [lat[key] for key in lat]
     # print(sum(lat_val),np.mean(lat_val))
-    new_lat_val = [-math.log(val / sum(lat_val), 2) for val in lat_val]
+    ##new_lat_val = [-math.log(val / sum(lat_val), 2) for val in lat_val]
 
     go_to_ic_dict_f = {}
     go_to_ic_dict_p = {}
@@ -1902,8 +2109,8 @@ def generateHistogram(data, originalData, discarded_data, species, prev, lat, Pr
     ##########################################################################################################
 
     # ft1.close()
-    fileTemp1.close()
-    fileTemp2.close()
+    ##fileTemp1.close()
+    ##fileTemp2.close()
 
     # fhi = open("HTP_Proteins_With_IC.tsv", "w")
     afhi = open("HTPProteins_IC.tsv", "w")
@@ -2247,7 +2454,9 @@ def main():
                 report_row = []
                 report_row.append("Wyatt Clark Threshold")
                 report_row.append(countProteins(data))
-            data, Prot_to_GO_Map_propagated, ontology_to_ia_map, goia_f, goia_p, goia_c, Prot_IA_propagated = calculateWyattClarkInformationContent(data, int(options.recalculate),
+            # Mar 1: calculateWyattClark returns Prot_to_GO_Map_noIEA instead of *_propagated
+            data, Prot_to_GO_Map_noIEA, ontology_to_ia_map, Prot_IA_propagated, Prot_Count = \
+                calculateWyattClarkInformationContent(data, int(options.recalculate),
                                                          options.info_threshold_Wyatt_Clark,
                                                          options.info_threshold_Wyatt_Clark_percentile,
                                                          options.output, file_num, type="All") # this data hasnt been through HTP/LTP
@@ -2277,8 +2486,7 @@ def main():
             if options.histogram != None:
                 later_go_term_freq = freqGO_TERM(data)
                 writeContentsToFile(later_go_term_freq, "laterInterimFile")
-                generateHistogram(data, originalData, discarded_data, eachinputfile, prev_go_term_freq,
-                                  later_go_term_freq, Prot_to_GO_Map_propagated, goia_f, goia_p, goia_c)
+                # generateHistogram(data, originalData, discarded_data, eachinputfile, goia_f, goia_p, goia_c)
                 # Propagate ontology again for LTP, keep goia_fpc, but new Prot_to_GO_Map_propagated
                 calculateWyattClarkInformationContent(data, int(options.recalculate),
                                                       options.info_threshold_Wyatt_Clark,
