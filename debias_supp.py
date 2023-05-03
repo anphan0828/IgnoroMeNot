@@ -22,16 +22,16 @@ from Bio.Seq import Seq
 from dateutil import parser
 import os
 
-# DATADIR = "data_for_debias_0914/"
-# # Some filenames
-# FILE_ALTERNATE_ID_TO_ID_MAPPING = DATADIR + "alt_to_id.graph"
-# FILE_CAFA_ID_TO_UNIPROT_ID_MAP = DATADIR + "CAFAIDTOUniprotIDMap.txt"
-# FILE_MFO_ONTOLOGY_GRAPH = DATADIR + "mf.graph"
-# FILE_BPO_ONTOLOGY_GRAPH = DATADIR + "bp.graph"
-# FILE_CCO_ONTOLOGY_GRAPH = DATADIR + "cc.graph"
-# FILE_MFO_ONTOLOGY_ANCESTORS_GRAPH = DATADIR + "mf_ancestors.map"
-# FILE_BPO_ONTOLOGY_ANCESTORS_GRAPH = DATADIR + "bp_ancestors.map"
-# FILE_CCO_ONTOLOGY_ANCESTORS_GRAPH = DATADIR + "cc_ancestors.map"
+DATADIR = "data_for_ignoromenot/"
+# Some filenames
+FILE_ALTERNATE_ID_TO_ID_MAPPING = DATADIR + "alt_to_id.graph"
+FILE_CAFA_ID_TO_UNIPROT_ID_MAP = DATADIR + "CAFAIDTOUniprotIDMap.txt"
+FILE_MFO_ONTOLOGY_GRAPH = DATADIR + "mf.graph"
+FILE_BPO_ONTOLOGY_GRAPH = DATADIR + "bp.graph"
+FILE_CCO_ONTOLOGY_GRAPH = DATADIR + "cc.graph"
+FILE_MFO_ONTOLOGY_ANCESTORS_GRAPH = DATADIR + "mf_ancestors.map"
+FILE_BPO_ONTOLOGY_ANCESTORS_GRAPH = DATADIR + "bp_ancestors.map"
+FILE_CCO_ONTOLOGY_ANCESTORS_GRAPH = DATADIR + "cc_ancestors.map"
 
 verbose = 0
 options = ""
@@ -550,7 +550,6 @@ def propagateOntologies(Prot_to_GO_Map, type): # update on Feb 13: Prot_to_GO_Ma
     Prot_to_GO_Map_noIEA = dict()
     Prot_to_DAG = dict()
     Prot_to_GO_unique_noIEA=dict()
-    Prot_to_MICA = dict()
     mf_ancestors = cp.load(open(FILE_MFO_ONTOLOGY_ANCESTORS_GRAPH, "rb"))
     bp_ancestors = cp.load(open(FILE_BPO_ONTOLOGY_ANCESTORS_GRAPH, "rb"))
     cc_ancestors = cp.load(open(FILE_CCO_ONTOLOGY_ANCESTORS_GRAPH, "rb"))
@@ -583,30 +582,7 @@ def propagateOntologies(Prot_to_GO_Map, type): # update on Feb 13: Prot_to_GO_Ma
                 unique_terms_noIEA['C'].add(GO_term)
         ancestors = list(set(ancestors))
         Prot_to_GO_Map_new[eachprotein] = ancestors # Prot_to_GO_Map_new: {protein1: ['GOpar1', 'GOpar2',...], protein2: [], ...}
-        # countAncestors = collections.Counter(ancestors_noIEA)
-        # micas=[[],[],[]]
-        # for item,count in countAncestors.items():
-        #     if len(unique_terms_noIEA['F']) <= 1:
-        #         if 'GO:0003674' not in unique_terms_noIEA['F']:
-        #             micas[0] = list(unique_terms_noIEA['F'])
-        #         pass
-        #     elif count == len(unique_terms_noIEA['F']) and item in mf_ancestors.keys():
-        #         micas[0].append(item)
-        #         pass
-        #     if len(unique_terms_noIEA['P']) <= 1:
-        #         if 'GO:0008150' not in unique_terms_noIEA['P']:
-        #             micas[1] = list(unique_terms_noIEA['P'])
-        #         pass
-        #     elif count == len(unique_terms_noIEA['P']) and item in bp_ancestors.keys():
-        #         micas[1].append(item)
-        #         pass
-        #     if len(unique_terms_noIEA['C']) <= 1:
-        #         if 'GO:0005575' not in unique_terms_noIEA['C']:
-        #             micas[2] = list(unique_terms_noIEA['C'])
-        #     elif count == len(unique_terms_noIEA['C']) and item in cc_ancestors.keys():
-        #         micas[2].append(item)
-        # Prot_to_MICA[eachprotein] = micas
-        ancestors_noIEA[0] = list(set([*ancestors_noIEA[1],*ancestors_noIEA[2],*ancestors_noIEA[3]])) # annotation DAG of each protein
+        ancestors_noIEA[0] = list({*ancestors_noIEA[1], *ancestors_noIEA[2], *ancestors_noIEA[3]}) # annotation DAG of each protein
         Prot_to_GO_Map_noIEA[eachprotein] = ancestors_noIEA[0] # this dict only keeps all ancestors across 3 aspects
         Prot_to_DAG[eachprotein] = [set(ancestors_noIEA[1]),set(ancestors_noIEA[2]),set(ancestors_noIEA[3])] # use to count subgraphs
         Prot_to_GO_unique_noIEA[eachprotein] = [list(set(unique_terms_noIEA['F'])),list(set(unique_terms_noIEA['P'])),list(set(unique_terms_noIEA['C']))]
@@ -648,7 +624,7 @@ def calculateSemanticSimilarity(Prot_to_GO_unique_noIEA,type):
     LCAs = dict()
     # Less computational heavy
     try:
-        stored = cp.load(open('data/temp/terms_to_lca_map','rb'))
+        stored = cp.load(open('data/temp/terms_to_lca_map','rb')) # obo-specific
     except IOError:
         print("Redoing LCA find:")
         stored={'F':dict(),'P':dict(),'C':dict()}
@@ -687,7 +663,7 @@ def calculateSemanticSimilarity(Prot_to_GO_unique_noIEA,type):
                         stored['C'][(node1, node2)] = common_ancestor
                         LCAs[protein][2].append(common_ancestor)
     cp.dump(stored,open('data/temp/terms_to_lca_map','wb'))
-    cp.dump(LCAs,open(type+"test_LCA.txt","wb"))
+    cp.dump(LCAs,open(type+"test_LCA","wb"))
     return LCAs
 
 
@@ -1106,20 +1082,6 @@ def calculateWyattClarkInformationContent(data, recal, crisp, percentile_val, ou
     fh = open(type+'Proteins_SS_all.tsv','w')
     fh2 = open(type+'Proteins_LCAs.tsv','w')
     for prot, lcas in Prot_to_LCA.items():
-    ## if choose max
-        # ss_F = max(ontology_to_ia_map[item][2] if item != "GO:0003674" else 0 for item in lcas[0]) if len(lcas[0]) > 0 else -1
-        # ss_P = max(ontology_to_ia_map[item][2] if item != "GO:0008150" else 0 for item in lcas[1]) if len(lcas[1]) > 0 else -1
-        # ss_C = max(ontology_to_ia_map[item][2] if item != "GO:0005575" else 0 for item in lcas[2]) if len(lcas[2]) > 0 else -1
-        # if prot.split("_")[-1] == '9606':
-        #     fh.write(prot + "\t" + "[" + str(0) + ", " + str(ss_F) + ", " + str(ss_P) + ", " + str(
-        #         ss_C) +  "]\n")
-        #     fh2.write(prot + "\t" + str(lcas) + "\n")
-        #     Prot_SS[prot] = [0,ss_F,ss_P,ss_C]
-        # else:
-        #     fh.write(prot.split("_")[-1] + "\t" + "[" + str(0) + ", " + str(ss_F) + ", " + str(ss_P) + ", " + str(
-        #         ss_C) +  "]\n")
-        #     fh2.write(prot.split("_")[-1] + "\t" + str(lcas) + "\n")
-        #     Prot_SS[prot.split("_")[-1]] = [0,ss_F,ss_P,ss_C]
     ## if keep all
         ss_F = [ontology_to_ia_map[item][2] if item != "GO:0003674" else 0 for item in lcas[0]]
         ss_P = [ontology_to_ia_map[item][2] if item != "GO:0008150" else 0 for item in lcas[1]]
@@ -1140,7 +1102,6 @@ def calculateWyattClarkInformationContent(data, recal, crisp, percentile_val, ou
     # fh2=open(type+'Proteins_DAG.tsv','w')
     Prot_IA_propagated2 = dict()  # new name proteins without DB
     for prot, ia_list in Prot_IA_propagated.items():
-        # print(prot.split("_")[-1], ia_list)
         if prot.split("_")[-1] == '9606':
             fh.write(prot+"\t"+ "[" + str(ia_list[0]) + ", " + str(ia_list[1]) + ", " + str(ia_list[2]) + ", " + str(ia_list[3]) + "]\n")
             # fh2.write(prot+"\t"+str(propagated_DAG[prot][0])+"\t"+str(propagated_DAG[prot][1])+"\t"+str(propagated_DAG[prot][2])+"\t"+str(propagated_DAG[prot][3])+"\n")
@@ -2479,23 +2440,23 @@ def main():
                 else:
                     report_row.append("Annotation Cut off")
                 report_row.append(countProteins(data))
-            if options.histogram != None:
-                prev_go_term_freq = freqGO_TERM(data)
-                writeContentsToFile(prev_go_term_freq, "PrevInterimFile")
+            # if options.histogram != None:
+            # prev_go_term_freq = freqGO_TERM(data)
+            # writeContentsToFile(prev_go_term_freq, "PrevInterimFile")
             data, discarded_data = chooseProteinsBasedOnPublications(data, options.cutoff_prot, options.cutoff_attn)
-            if options.histogram != None:
-                later_go_term_freq = freqGO_TERM(data)
-                writeContentsToFile(later_go_term_freq, "laterInterimFile")
-                # generateHistogram(data, originalData, discarded_data, eachinputfile, goia_f, goia_p, goia_c)
-                # Propagate ontology again for LTP, keep goia_fpc, but new Prot_to_GO_Map_propagated
-                calculateWyattClarkInformationContent(data, int(options.recalculate),
-                                                      options.info_threshold_Wyatt_Clark,
-                                                      options.info_threshold_Wyatt_Clark_percentile,
-                                                      options.output, file_num, type="LTP") # this data = LTP data
-                calculateWyattClarkInformationContent(discarded_data, int(options.recalculate),
-                                                      options.info_threshold_Wyatt_Clark,
-                                                      options.info_threshold_Wyatt_Clark_percentile,
-                                                      options.output, file_num, type="HTP") # discarded_data = HTP data
+            # if options.histogram != None:
+            # later_go_term_freq = freqGO_TERM(data)
+            # writeContentsToFile(later_go_term_freq, "laterInterimFile")
+            # generateHistogram(data, originalData, discarded_data, eachinputfile, goia_f, goia_p, goia_c)
+            # Propagate ontology again for LTP, keep goia_fpc, but new Prot_to_GO_Map_propagated
+            calculateWyattClarkInformationContent(data, int(options.recalculate),
+                                                  options.info_threshold_Wyatt_Clark,
+                                                  options.info_threshold_Wyatt_Clark_percentile,
+                                                  options.output, file_num, type="LTP") # this data = LTP data
+            calculateWyattClarkInformationContent(discarded_data, int(options.recalculate),
+                                                  options.info_threshold_Wyatt_Clark,
+                                                  options.info_threshold_Wyatt_Clark_percentile,
+                                                  options.output, file_num, type="HTP") # discarded_data = HTP data
             vprint("Number of annotations after choosing proteins based on Publications ", len(data))
             vprint("Data discarded ", prev_len - len(data))
             if (report == 1):
