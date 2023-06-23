@@ -409,9 +409,11 @@ def common_to_string2(iddict, ranktable, genelist):
     :param genelist: input common gene names
     :return: gene STRING ids and idmapping table
     """
-    idtable = pd.DataFrame.from_dict(iddict, orient='index')
-    idtable.reset_index(inplace=True)
-    idtable = idtable.rename(columns={"index": "string_id", 0:"protein_name"})
+    # idtable = pd.DataFrame.from_dict(iddict, orient='index')
+    # idtable.reset_index(inplace=True)
+    # idtable = idtable.rename(columns={"index": "string_id", 0:"protein_name"})
+    idtable=pd.read_csv('protein.aliases.txt',sep="\t",header=0,usecols=["#string_protein_id","alias"])
+    idtable=idtable.rename(columns={"#string_protein_id":"string_id","alias":"protein_name"})
     id_rank_all = pd.merge(ranktable, idtable, on=['protein_name'], how="left")
     id_rank = id_rank_all.dropna()
     na_idrank = id_rank_all[id_rank_all.isna().any(axis=1)].sort_values(by=id_rank_all.columns[1], ascending=False)
